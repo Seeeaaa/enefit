@@ -1,6 +1,6 @@
 *.csv
+*.ipynb_checkpoints
 # *.zip
 # *.json
 # *.py
 # *.ipynb
-# *.ipynb_checkpoints
