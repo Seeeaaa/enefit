@@ -1,6 +1,7 @@
 *.csv
 *.json
 *.ipynb_checkpoints
+# *.gitattributes
 # *.zip
 # *.py
 # *.ipynb
