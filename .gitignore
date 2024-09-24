@@ -2,6 +2,7 @@
 *.json
 *.ipynb_checkpoints
 *.lock
+*.zip
 # *.toml
 # *.python-version
 # *.gitattributes
