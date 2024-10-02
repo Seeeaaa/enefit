@@ -2,9 +2,9 @@
 *.json
 *.ipynb_checkpoints
 *.lock
-# *.toml
+*.zip
+*.py
 *.python-version
+# *.toml
 # *.gitattributes
-# *.zip
-# *.py
 # *.ipynb
