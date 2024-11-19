@@ -1,10 +1,10 @@
 *.csv
 *.json
 *.ipynb_checkpoints
-*.lock
 *.zip
 *.py
 *.python-version
-# *.toml
+*.toml
+*.lock
 # *.gitattributes
 # *.ipynb
