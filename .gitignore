@@ -7,5 +7,6 @@
 *.python-version
 *.toml
 *.lock
+*.png
 # *.gitattributes
 # *.ipynb
