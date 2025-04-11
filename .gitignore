@@ -1,12 +1,17 @@
 *.csv
-*.json
 *.geojson
-*.ipynb_checkpoints
+*.json
 *.zip
+
 *.py
+*.ipynb_checkpoints
+
 *.python-version
 *.toml
 *.lock
-*.png
-# *.gitattributes
 
+*.png
+
+*.pbix
+
+# *.gitattributes
