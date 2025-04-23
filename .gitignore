@@ -3,7 +3,6 @@
 *.json
 *.zip
 
-*.py
 *.ipynb_checkpoints
 
 *.python-version

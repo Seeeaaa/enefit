@@ -1,0 +1,59 @@
+import pandas as pd
+
+
+def merge_all(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Merge all dataframes into one"""
+    (
+        train_df,
+        gas_prices_df,
+        client_df,
+        electricity_prices_df,
+        forecast_weather_df,
+        historical_weather_df,
+        station_county_mapping_df,
+        county_id_to_name_map,
+    ) = (
+        dfs["train"],
+        dfs["gas_prices"],
+        dfs["client"],
+        dfs["electricity_prices"],
+        dfs["forecast_weather"],
+        dfs["historical_weather"],
+        dfs["station_county_mapping"],
+        dfs["county_id_to_name_map"],
+    )
+
+    # Drop spring NaNs and impute autumn NaNs with interpolated values
+    na_datetimes = train_df[train_df.isna().any(axis=1)]["datetime"].unique()
+    df = train_df.loc[~train_df["datetime"].isin(na_datetimes[1::2])].assign(
+        target=lambda x: x["target"].interpolate()
+    )
+
+    #     # Add a flag indicating Daylight Saving Time
+    #     df["dst"] = ~(
+    #         ((df.datetime >= na_datetimes[0]) & (df.datetime < na_datetimes[1]))
+    #         | ((df.datetime >= na_datetimes[2]) & (df.datetime < na_datetimes[3]))
+    #     )
+
+    #     # estonia_holidays = holidays.EE(years=range(2021, 2024), language='en_US')
+    #     # for date, name in estonia_holidays.items():
+    #     #     print(date, name)
+
+    df = pd.merge(
+        left=df,
+        right=client_df.drop(columns=["date"]),
+        how="left",
+        on=["county", "product_type", "is_business", "data_block_id"],
+    )
+
+    df = df.merge(
+        right=gas_prices_df,
+        on=["data_block_id"],
+    )
+
+    df = df.merge(
+        right=electricity_prices_df,
+        left_on=["datetime", "data_block_id"],
+        right_on=["electricity_datetime", "data_block_id"],
+    ).drop(columns=["electricity_datetime"])
+    return df
