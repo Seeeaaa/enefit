@@ -1,7 +1,8 @@
 import pandas as pd
+from utils.process import avg_weather_data
 
 
-def merge_all(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def merge_all_dfs(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Merge all dataframes into one"""
     (
         train_df,
@@ -29,20 +30,10 @@ def merge_all(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
         target=lambda x: x["target"].interpolate()
     )
 
-    #     # Add a flag indicating Daylight Saving Time
-    #     df["dst"] = ~(
-    #         ((df.datetime >= na_datetimes[0]) & (df.datetime < na_datetimes[1]))
-    #         | ((df.datetime >= na_datetimes[2]) & (df.datetime < na_datetimes[3]))
-    #     )
-
-    #     # estonia_holidays = holidays.EE(years=range(2021, 2024), language='en_US')
-    #     # for date, name in estonia_holidays.items():
-    #     #     print(date, name)
-
-    df = pd.merge(
-        left=df,
+    df = df.merge(
+        # left=df,
         right=client_df.drop(columns=["date"]),
-        how="left",
+        how="inner",  # save dtype
         on=["county", "product_type", "is_business", "data_block_id"],
     )
 
@@ -56,4 +47,58 @@ def merge_all(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
         left_on=["datetime", "data_block_id"],
         right_on=["electricity_datetime", "data_block_id"],
     ).drop(columns=["electricity_datetime"])
+
+    fp = "f1_"  # 1 Prefix for columns related to the 1 day forecast
+    df = df.merge(
+        avg_weather_data(
+            forecast_weather_df, station_county_mapping_df
+        ).add_prefix(fp),
+        how="left",
+        left_on=["county", "datetime", "data_block_id"],
+        right_on=[
+            fp + c for c in ["county", "forecast_datetime", "data_block_id"]
+        ],
+    ).drop(
+        columns=[
+            fp + c
+            for c in [
+                "county",
+                "origin_datetime",
+                "hours_ahead",
+                "forecast_datetime",
+                "data_block_id",
+            ]
+        ]
+    )
+
+    hp = "h2_"  # Prefix for columns related to 2 day historical data
+    hw_df = avg_weather_data(historical_weather_df, station_county_mapping_df)
+    hw_df["fully_available_at"] = hw_df["datetime"] + pd.Timedelta("2 d")
+    df = df.merge(
+        hw_df.add_prefix(hp),
+        how="left",
+        left_on=["county", "datetime"],
+        right_on=[hp + c for c in ["county", "fully_available_at"]],
+    ).drop(
+        columns=[
+            hp + c
+            for c in [
+                "county",
+                "datetime",
+                "fully_available_at",
+                "data_block_id",
+            ]
+        ]
+    )
+
     return df
+
+    #     # Add a flag indicating Daylight Saving Time
+    #     df["dst"] = ~(
+    #         ((df.datetime >= na_datetimes[0]) & (df.datetime < na_datetimes[1]))
+    #         | ((df.datetime >= na_datetimes[2]) & (df.datetime < na_datetimes[3]))
+    #     )
+
+    #     # estonia_holidays = holidays.EE(years=range(2021, 2024), language='en_US')
+    #     # for date, name in estonia_holidays.items():
+    #     #     print(date, name)

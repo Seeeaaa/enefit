@@ -1,8 +1,12 @@
 import pandas as pd
 
 
-def load_raw_data(path: str) -> dict[str, pd.DataFrame | pd.Series]:
-    """Load all data and return dict with DFs."""
+def load_all_raw_data(path: str) -> dict[str, pd.DataFrame | pd.Series]:
+    """
+    Load all data and return dict with DFs and Series with keys: train,
+    gas_prices, client, electricity_prices, forecast_weather,
+    historical_weather, station_county_mapping, county_id_to_name_map.
+    """
     return {
         "train": pd.read_csv(f"{path}train.csv"),
         "gas_prices": pd.read_csv(f"{path}gas_prices.csv"),
@@ -15,5 +19,5 @@ def load_raw_data(path: str) -> dict[str, pd.DataFrame | pd.Series]:
         ),
         "county_id_to_name_map": pd.read_json(
             f"{path}county_id_to_name_map.json", typ="series"
-        ).str.lower(),
+        ),
     }
