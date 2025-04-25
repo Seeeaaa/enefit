@@ -12,7 +12,7 @@ def merge_all_dfs(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
         forecast_weather_df,
         historical_weather_df,
         station_county_mapping_df,
-        county_id_to_name_map,
+        # county_id_to_name_map,
     ) = (
         dfs["train"],
         dfs["gas_prices"],
@@ -21,7 +21,7 @@ def merge_all_dfs(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
         dfs["forecast_weather"],
         dfs["historical_weather"],
         dfs["station_county_mapping"],
-        dfs["county_id_to_name_map"],
+        # dfs["county_id_to_name_map"],
     )
 
     # Drop spring NaNs and impute autumn NaNs with interpolated values
