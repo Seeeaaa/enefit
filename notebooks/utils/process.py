@@ -3,6 +3,11 @@ import numpy as np
 
 
 def process_train(df: pd.DataFrame) -> pd.DataFrame:
+    # Drop spring NaNs and impute autumn NaNs with interpolated values
+    na_datetimes = df[df.isna().any(axis=1)]["datetime"].unique()
+    df = df.loc[~df["datetime"].isin(na_datetimes[1::2])].assign(
+        target=lambda x: x["target"].interpolate()
+    )
     return (
         df[
             [
