@@ -95,13 +95,13 @@ def merge_all_dfs(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
         ]
     )
 
-    return df
+    # Add a flag indicating Daylight Saving Time
+    df["dst"] = ~(
+        ((df.datetime >= na_datetimes[0]) & (df.datetime < na_datetimes[1]))
+        | ((df.datetime >= na_datetimes[2]) & (df.datetime < na_datetimes[3]))
+    )
 
-    #     # Add a flag indicating Daylight Saving Time
-    #     df["dst"] = ~(
-    #         ((df.datetime >= na_datetimes[0]) & (df.datetime < na_datetimes[1]))
-    #         | ((df.datetime >= na_datetimes[2]) & (df.datetime < na_datetimes[3]))
-    #     )
+    return df
 
     #     # estonia_holidays = holidays.EE(years=range(2021, 2024), language='en_US')
     #     # for date, name in estonia_holidays.items():
