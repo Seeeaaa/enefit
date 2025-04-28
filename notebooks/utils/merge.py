@@ -97,9 +97,19 @@ def merge_all_dfs(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
     # Add a flag indicating Daylight Saving Time
     df["dst"] = ~(
-        ((df.datetime >= na_datetimes[0]) & (df.datetime < na_datetimes[1]))
-        | ((df.datetime >= na_datetimes[2]) & (df.datetime < na_datetimes[3]))
+        (
+            (df.datetime >= "2021-10-31 03:00:00")
+            & (df.datetime < "2022-03-27 03:00:00")
+        )
+        | (
+            (df.datetime >= "2022-10-30 03:00:00")
+            & (df.datetime < "2023-03-26 03:00:00")
+        )
     )
+    # df["dst"] = ~(
+    #     ((df.datetime >= na_datetimes[0]) & (df.datetime < na_datetimes[1]))
+    #     | ((df.datetime >= na_datetimes[2]) & (df.datetime < na_datetimes[3]))
+    # )
 
     return df
 
