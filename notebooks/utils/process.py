@@ -1,4 +1,5 @@
 import pandas as pd
+from pandas.core.groupby.generic import DataFrameGroupBy
 import numpy as np
 
 
@@ -437,4 +438,46 @@ def get_lag(df: pd.DataFrame, dt: str, lag: int, c: str) -> pd.DataFrame:
         raise ValueError(f"'lag' must be at least 2 days, got {lag}")
     return df.assign(**{dt: df[dt] + pd.Timedelta(days=lag)}).rename(
         columns={c: f"{lag}d_lag_{c}"}
+    )
+
+
+def get_moving_average(
+    dfgb: DataFrameGroupBy,
+    c: str,
+    window: int,
+) -> pd.DataFrame:
+    """
+    Compute rolling mean for a specified column of a grouped DataFrame
+    and shift the datetime column by 48 hours.
+
+    Parameters
+    ----------
+    dfgb : DataFrameGroupBy
+        Grouped DataFrame (result of df.groupby(..., as_index=False)),
+        where the original DataFrame was sorted by the datetime index.
+    c : str
+        Name of the column to aggregate.
+    window : int
+        Rolling window size in hours (min_periods=window).
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing:
+        - all grouping columns,
+        - the datetime column, shifted by 48 h,
+        - a new column with the rolling mean.
+    """
+
+    return (
+        dfgb[c]
+        .rolling(pd.Timedelta(f"{window}h"), min_periods=window, closed="left")
+        .mean()
+        .reset_index()
+        .pipe(
+            lambda d: d.assign(
+                **{d.columns[0]: d[d.columns[0]] + pd.Timedelta(hours=48)}
+            )
+        )
+        .rename(columns={c: f"{window}h_ma_2d_lag_{c}"})
     )
