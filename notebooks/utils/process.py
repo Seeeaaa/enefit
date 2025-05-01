@@ -9,6 +9,7 @@ def process_train(df: pd.DataFrame) -> pd.DataFrame:
     df = df.loc[~df["datetime"].isin(na_datetimes[1::2])].assign(
         target=lambda x: x["target"].interpolate()
     )
+    df["date"] = df["datetime"].dt.date
     return (
         df[
             [
@@ -306,6 +307,17 @@ def process_county_id_to_name_map(s: pd.Series) -> pd.Series:
     return s.str.lower()
 
 
+def process_holidays(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Process holidays data by converting the 'date' column to datetime
+    and dropping the 'name' column.
+    """
+    return df.drop(columns=["name"]).assign(
+        date=lambda x: pd.to_datetime(x["date"]).dt.date,
+        type=lambda x: x["type"].astype("category"),
+    )
+
+
 def process_all_dfs(
     data: dict[str, pd.DataFrame | pd.Series],
 ) -> dict[str, pd.DataFrame | pd.Series]:
@@ -326,6 +338,7 @@ def process_all_dfs(
         "county_id_to_name_map": process_county_id_to_name_map(
             data["county_id_to_name_map"]
         ),
+        "holidays": process_holidays(data["holidays"]),
     }
 
 
