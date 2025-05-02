@@ -9,39 +9,29 @@ def process_train(df: pd.DataFrame) -> pd.DataFrame:
     df = df.loc[~df["datetime"].isin(na_datetimes[1::2])].assign(
         target=lambda x: x["target"].interpolate()
     )
-    df["date"] = df["datetime"].dt.date
-    return (
-        df[
-            [
-                "county",
-                "product_type",
-                "is_business",
-                "is_consumption",
-                "datetime",
-                "target",
-                "data_block_id",
-            ]
+    df = df[
+        [
+            "county",
+            "product_type",
+            "is_business",
+            "is_consumption",
+            "datetime",
+            "target",
+            "data_block_id",
         ]
-        .astype(
-            {
-                "county": "uint8",
-                "product_type": "uint8",
-                "is_business": "bool",
-                "is_consumption": "bool",
-                "target": "float32",
-                "data_block_id": "uint16",
-                "datetime": "datetime64[ns]",
-            }
-        )
-        .astype(
-            {
-                "county": "category",
-                "product_type": "category",
-                "is_business": "category",
-                "is_consumption": "category",
-            }
-        )
+    ].astype(
+        {
+            "county": "category",
+            "product_type": "category",
+            "is_business": "category",
+            "is_consumption": "category",
+            "target": "float32",
+            "data_block_id": "uint16",
+            "datetime": "datetime64[ns]",
+        }
     )
+    df["date"] = df["datetime"].dt.date
+    return df
 
 
 def process_gas_prices(df: pd.DataFrame) -> pd.DataFrame:
@@ -307,18 +297,7 @@ def process_county_id_to_name_map(s: pd.Series) -> pd.Series:
     return s.str.lower()
 
 
-def process_holidays(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Process holidays data by converting the 'date' column to datetime
-    and dropping the 'name' column.
-    """
-    return df.drop(columns=["name"]).assign(
-        date=lambda x: pd.to_datetime(x["date"]).dt.date,
-        type=lambda x: x["type"].astype("category"),
-    )
-
-
-def process_all_dfs(
+def process_original_dfs(
     data: dict[str, pd.DataFrame | pd.Series],
 ) -> dict[str, pd.DataFrame | pd.Series]:
     return {
@@ -337,10 +316,44 @@ def process_all_dfs(
         ),
         "county_id_to_name_map": process_county_id_to_name_map(
             data["county_id_to_name_map"]
-        ),
-        "holidays": process_holidays(data["holidays"]),
+        )
+        # "holidays": process_holidays(data["holidays"]),
     }
 
+
+def process_holidays(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Process holidays data by converting the 'date' column to datetime
+    and dropping the 'name' column.
+    """
+    return df.drop(columns=["name"]).assign(
+        date=lambda x: pd.to_datetime(x["date"]).dt.date,
+        holiday_type=lambda x: x["holiday_type"],
+        # .fillna("ordinary_day")
+        # .astype("category"),
+    )
+
+def process_additional_dfs(
+    raw: dict[str, pd.DataFrame],
+) -> dict[str, pd.DataFrame]:
+    processed = {}
+
+    # Process holidays
+    holidays = raw["holidays"]
+    holidays["date"] = pd.to_datetime(holidays["date"])
+    processed["holidays"] = holidays
+
+    # Process weather forecast
+    forecast = raw["weather_forecast"]
+    forecast["forecast_date"] = pd.to_datetime(forecast["forecast_date"])
+    processed["weather_forecast"] = forecast
+
+    # Process demographics
+    demographics = raw["demographics"]
+    # ... any transformations ...
+    processed["demographics"] = demographics
+
+    return processed
 
 def avg_weather_data(df: pd.DataFrame, mapper: pd.DataFrame) -> pd.DataFrame:
     """

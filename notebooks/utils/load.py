@@ -5,9 +5,28 @@ def load_all_raw_data(
     main_path: str, additional_path: str
 ) -> dict[str, pd.DataFrame | pd.Series]:
     """
-    Load all data and return dict with DFs and Series with keys: train,
-    gas_prices, client, electricity_prices, forecast_weather,
-    historical_weather, station_county_mapping, county_id_to_name_map.
+    Load all raw datasets from competition and external sources.
+
+    Parameters
+    ----------
+    main_path : str
+        Directory containing competition CSV and JSON files.
+    additional_path : str
+        Directory containing external datasets.
+
+    Returns
+    -------
+    dict[str, pd.DataFrame | pd.Series]
+        Dictionary with the following keys:
+          - 'train'
+          - 'gas_prices'
+          - 'client'
+          - 'electricity_prices'
+          - 'forecast_weather'
+          - 'historical_weather'
+          - 'station_county_mapping'
+          - 'county_id_to_name_map'
+          - 'holidays'
     """
     return {
         "train": pd.read_csv(f"{main_path}train.csv"),

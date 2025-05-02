@@ -2,9 +2,7 @@ import pandas as pd
 from utils.process import avg_weather_data
 
 
-def merge_all_dfs(
-    dfs: dict[str, pd.DataFrame], holidays_df: pd.DataFrame
-) -> pd.DataFrame:
+def merge_all_dfs(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Merge all dataframes into one"""
     (
         train_df,
@@ -116,7 +114,11 @@ def merge_all_dfs(
     # )
 
     # Add different categories of holidays
-    # df = df.merge(holidays_df, how="left", on=[""])
+    df = (
+        df.merge(holidays_df, how="left", on=["date"])
+        .fillna({"holiday_type": "ordinary_day"})
+        .astype({"holiday_type": "category"})
+    )
 
     return df
 
