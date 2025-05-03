@@ -4,6 +4,7 @@
 *.zip
 
 *.ipynb_checkpoints
+*.Trash-0
 
 *.python-version
 *.toml
