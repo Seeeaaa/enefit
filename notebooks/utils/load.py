@@ -1,9 +1,10 @@
 import pandas as pd
+from pandas import DataFrame, Series
 
 
 def load_all_raw_data(
     main_path: str, additional_path: str
-) -> dict[str, pd.DataFrame | pd.Series]:
+) -> tuple[dict[str, DataFrame | Series], dict[str, DataFrame]]:
     """
     Load all raw datasets from competition and external sources.
 
@@ -45,5 +46,6 @@ def load_all_raw_data(
         "county_id_to_name_map": pd.read_json(
             f"{main_path}county_id_to_name_map.json", typ="series"
         ),
+    }, {
         "holidays": pd.read_csv(f"{additional_path}holidays.csv"),
     }

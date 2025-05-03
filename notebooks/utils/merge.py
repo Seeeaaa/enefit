@@ -1,8 +1,10 @@
 import pandas as pd
 from utils.process import avg_weather_data
+from pandas import DataFrame
 
-
-def merge_all_dfs(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def merge_all_dfs(
+    original: dict[str, DataFrame], additional: dict[str, DataFrame]
+) -> DataFrame:
     """Merge all dataframes into one"""
     (
         train_df,
@@ -13,18 +15,17 @@ def merge_all_dfs(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
         historical_weather_df,
         station_county_mapping_df,
         county_id_to_name_map,
-        holidays_df,
     ) = (
-        dfs["train"],
-        dfs["gas_prices"],
-        dfs["client"],
-        dfs["electricity_prices"],
-        dfs["forecast_weather"],
-        dfs["historical_weather"],
-        dfs["station_county_mapping"],
-        dfs["county_id_to_name_map"],
-        dfs["holidays"],
+        original["train"],
+        original["gas_prices"],
+        original["client"],
+        original["electricity_prices"],
+        original["forecast_weather"],
+        original["historical_weather"],
+        original["station_county_mapping"],
+        original["county_id_to_name_map"],
     )
+    holidays_df = additional["holidays"]
 
     # # Drop spring NaNs and impute autumn NaNs with interpolated values
     # na_datetimes = train_df[train_df.isna().any(axis=1)]["datetime"].unique()
@@ -108,10 +109,6 @@ def merge_all_dfs(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
             & (df.datetime < "2023-03-26 03:00:00")
         )
     )
-    # df["dst"] = ~(
-    #     ((df.datetime >= na_datetimes[0]) & (df.datetime < na_datetimes[1]))
-    #     | ((df.datetime >= na_datetimes[2]) & (df.datetime < na_datetimes[3]))
-    # )
 
     # Add different categories of holidays
     df = (
@@ -121,7 +118,3 @@ def merge_all_dfs(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
     )
 
     return df
-
-    #     # estonia_holidays = holidays.EE(years=range(2021, 2024), language='en_US')
-    #     # for date, name in estonia_holidays.items():
-    #     #     print(date, name)

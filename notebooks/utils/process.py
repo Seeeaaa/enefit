@@ -1,9 +1,10 @@
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
+from pandas import DataFrame, Series
 import numpy as np
 
 
-def process_train(df: pd.DataFrame) -> pd.DataFrame:
+def process_train(df: DataFrame) -> DataFrame:
     # Drop spring NaNs and impute autumn NaNs with interpolated values
     na_datetimes = df[df.isna().any(axis=1)]["datetime"].unique()
     df = df.loc[~df["datetime"].isin(na_datetimes[1::2])].assign(
@@ -25,16 +26,16 @@ def process_train(df: pd.DataFrame) -> pd.DataFrame:
             "product_type": "category",
             "is_business": "category",
             "is_consumption": "category",
+            "datetime": "datetime64[ns]",
             "target": "float32",
             "data_block_id": "uint16",
-            "datetime": "datetime64[ns]",
         }
     )
     df["date"] = df["datetime"].dt.date
     return df
 
 
-def process_gas_prices(df: pd.DataFrame) -> pd.DataFrame:
+def process_gas_prices(df: DataFrame) -> DataFrame:
     return df[
         [
             "data_block_id",
@@ -50,41 +51,31 @@ def process_gas_prices(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def process_client(df: pd.DataFrame) -> pd.DataFrame:
-    return (
-        df[
-            [
-                "county",
-                "product_type",
-                "is_business",
-                "date",
-                "eic_count",
-                "installed_capacity",
-                "data_block_id",
-            ]
+def process_client(df: DataFrame) -> DataFrame:
+    return df[
+        [
+            "county",
+            "product_type",
+            "is_business",
+            "date",
+            "eic_count",
+            "installed_capacity",
+            "data_block_id",
         ]
-        .astype(
-            {
-                "county": "uint8",
-                "product_type": "uint8",
-                "is_business": "bool",
-                "date": "datetime64[ns]",
-                "eic_count": "uint32",
-                "installed_capacity": "float32",
-                "data_block_id": "uint16",
-            }
-        )
-        .astype(
-            {
-                "county": "category",
-                "product_type": "category",
-                "is_business": "category",
-            }
-        )
+    ].astype(
+        {
+            "county": "category",
+            "product_type": "category",
+            "is_business": "category",
+            "date": "datetime64[ns]",
+            "eic_count": "uint32",
+            "installed_capacity": "float32",
+            "data_block_id": "uint16",
+        }
     )
 
 
-def process_electricity_prices(df: pd.DataFrame) -> pd.DataFrame:
+def process_electricity_prices(df: DataFrame) -> DataFrame:
     return df.astype(
         {
             "origin_date": "datetime64[ns]",
@@ -96,7 +87,7 @@ def process_electricity_prices(df: pd.DataFrame) -> pd.DataFrame:
     )[["electricity_datetime", "euros_per_mwh", "data_block_id"]]
 
 
-def process_forecast_weather(df: pd.DataFrame) -> pd.DataFrame:
+def process_forecast_weather(df: DataFrame) -> DataFrame:
     df = df.rename(
         columns={
             "10_metre_u_wind_component": "u_component",
@@ -185,7 +176,7 @@ def process_forecast_weather(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def process_historical_weather(df: pd.DataFrame) -> pd.DataFrame:
+def process_historical_weather(df: DataFrame) -> DataFrame:
     df = df.rename(columns={"windspeed_10m": "windspeed"})
     df["winddirection_10m"] = np.deg2rad(df["winddirection_10m"])
     df["u_component"] = -df["windspeed"] * np.sin(df["winddirection_10m"])
@@ -254,7 +245,7 @@ def process_historical_weather(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def process_station_county_mapping(df: pd.DataFrame) -> pd.DataFrame:
+def process_station_county_mapping(df: DataFrame) -> DataFrame:
     df = df[
         [
             "latitude",
@@ -293,13 +284,13 @@ def process_station_county_mapping(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def process_county_id_to_name_map(s: pd.Series) -> pd.Series:
+def process_county_id_to_name_map(s: Series) -> Series:
     return s.str.lower()
 
 
 def process_original_dfs(
-    data: dict[str, pd.DataFrame | pd.Series],
-) -> dict[str, pd.DataFrame | pd.Series]:
+    data: dict[str, DataFrame | Series],
+) -> dict[str, DataFrame | Series]:
     return {
         "train": process_train(data["train"]),
         "gas_prices": process_gas_prices(data["gas_prices"]),
@@ -316,46 +307,40 @@ def process_original_dfs(
         ),
         "county_id_to_name_map": process_county_id_to_name_map(
             data["county_id_to_name_map"]
-        )
-        # "holidays": process_holidays(data["holidays"]),
+        ),
     }
 
 
-def process_holidays(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Process holidays data by converting the 'date' column to datetime
-    and dropping the 'name' column.
-    """
-    return df.drop(columns=["name"]).assign(
-        date=lambda x: pd.to_datetime(x["date"]).dt.date,
-        holiday_type=lambda x: x["holiday_type"],
-        # .fillna("ordinary_day")
-        # .astype("category"),
-    )
+# def process_holidays(df: DataFrame) -> DataFrame:
+#     """
+#     Process holidays data by converting the 'date' column to datetime
+#     and dropping the 'name' column.
+#     """
+#     return df.drop(columns=["name"]).assign(
+#         date=lambda x: pd.to_datetime(x["date"]).dt.date,
+#         holiday_type=lambda x: x["holiday_type"],
+#         # .fillna("ordinary_day")
+#         # .astype("category"),
+#     )
+
 
 def process_additional_dfs(
-    raw: dict[str, pd.DataFrame],
-) -> dict[str, pd.DataFrame]:
-    processed = {}
-
+    data: dict[str, DataFrame],
+) -> dict[str, DataFrame]:
     # Process holidays
-    holidays = raw["holidays"]
-    holidays["date"] = pd.to_datetime(holidays["date"])
-    processed["holidays"] = holidays
+    data["holidays"] = (
+        data["holidays"]
+        .drop(columns=["name"])
+        .assign(
+            date=lambda x: pd.to_datetime(x["date"]).dt.date,
+            holiday_type=lambda x: x["holiday_type"],
+        )
+    )
 
-    # Process weather forecast
-    forecast = raw["weather_forecast"]
-    forecast["forecast_date"] = pd.to_datetime(forecast["forecast_date"])
-    processed["weather_forecast"] = forecast
+    return data
 
-    # Process demographics
-    demographics = raw["demographics"]
-    # ... any transformations ...
-    processed["demographics"] = demographics
 
-    return processed
-
-def avg_weather_data(df: pd.DataFrame, mapper: pd.DataFrame) -> pd.DataFrame:
+def avg_weather_data(df: DataFrame, mapper: DataFrame) -> DataFrame:
     """
     Compute mean aggregated weather data per county and overall.
 
@@ -366,17 +351,17 @@ def avg_weather_data(df: pd.DataFrame, mapper: pd.DataFrame) -> pd.DataFrame:
 
     Parameters
     ----------
-    df : pd.DataFrame
+    df : DataFrame
         Input weather data with latitude, longitude, datetime,
         numerical weather features.
-    mapper : pd.DataFrame
+    mapper : DataFrame
         DataFrame that maps each location to a county containing
         "county", "latitude", and "longitude" columns. Only rows with a
         known "county" (i.e., not 'unknown') are used for merging.
 
     Returns
     -------
-    pd.DataFrame
+    DataFrame
         DataFrame with mean aggregated weather data per county and
         overall.
     """
@@ -434,13 +419,13 @@ def avg_weather_data(df: pd.DataFrame, mapper: pd.DataFrame) -> pd.DataFrame:
     return df[["county"] + groups + avg_c]
 
 
-def get_lag(df: pd.DataFrame, dt: str, lag: int, c: str) -> pd.DataFrame:
+def get_lag(df: DataFrame, dt: str, lag: int, c: str) -> DataFrame:
     """
     Shift 'dt' column by 'lag' days and rename the 'c' column.
 
     Parameters
     ----------
-    df : pd.DataFrame
+    df : DataFrame
         Input DataFrame.
     dt : str
         Name of the datetime column to be shifted.
@@ -451,7 +436,7 @@ def get_lag(df: pd.DataFrame, dt: str, lag: int, c: str) -> pd.DataFrame:
 
     Returns
     -------
-    pd.DataFrame
+    DataFrame
         DataFrame with the shifted datetime column and renamed target
         column.
 
@@ -471,7 +456,7 @@ def get_moving_average(
     dfgb: DataFrameGroupBy,
     c: str,
     window: int,
-) -> pd.DataFrame:
+) -> DataFrame:
     """
     Compute rolling mean for a specified column of a grouped DataFrame
     and shift the datetime column by 48 hours.
@@ -488,7 +473,7 @@ def get_moving_average(
 
     Returns
     -------
-    pd.DataFrame
+    DataFrame
         DataFrame containing:
         - all grouping columns,
         - the datetime column, shifted by 48 h,
@@ -501,8 +486,8 @@ def get_moving_average(
         .mean()
         .reset_index()
         .pipe(
-            lambda d: d.assign(
-                **{d.columns[0]: d[d.columns[0]] + pd.Timedelta(hours=48)}
+            lambda x: x.assign(
+                **{x.columns[0]: x[x.columns[0]] + pd.Timedelta(hours=48)}
             )
         )
         .rename(columns={c: f"{window}h_ma_2d_lag_{c}"})
