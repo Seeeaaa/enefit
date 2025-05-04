@@ -1,5 +1,4 @@
 import pandas as pd
-from pandas.core.groupby.generic import DataFrameGroupBy
 from pandas import DataFrame, Series
 import numpy as np
 
@@ -275,17 +274,11 @@ def process_station_county_mapping(df: DataFrame) -> DataFrame:
         )
         .astype({"county": "category"})
         .sort_values(["latitude", "longitude"], ignore_index=True)
-        # .rename(
-        # columns={
-        # "county_name": "county",
-        # "county": "county_index",
-        # }
-        # )
     )
 
 
-def process_county_id_to_name_map(s: Series) -> Series:
-    return s.str.lower()
+def process_county_id_to_name_map(mapper: Series) -> Series:
+    return mapper.str.lower()
 
 
 def process_original_dfs(
@@ -311,22 +304,7 @@ def process_original_dfs(
     }
 
 
-# def process_holidays(df: DataFrame) -> DataFrame:
-#     """
-#     Process holidays data by converting the 'date' column to datetime
-#     and dropping the 'name' column.
-#     """
-#     return df.drop(columns=["name"]).assign(
-#         date=lambda x: pd.to_datetime(x["date"]).dt.date,
-#         holiday_type=lambda x: x["holiday_type"],
-#         # .fillna("ordinary_day")
-#         # .astype("category"),
-#     )
-
-
-def process_additional_dfs(
-    data: dict[str, DataFrame],
-) -> dict[str, DataFrame]:
+def process_additional_dfs(data: dict[str, DataFrame]) -> dict[str, DataFrame]:
     # Process holidays
     data["holidays"] = (
         data["holidays"]
@@ -338,6 +316,12 @@ def process_additional_dfs(
     )
 
     return data
+
+
+def process_all_dfs(
+    data: tuple[dict[str, DataFrame | Series], dict[str, DataFrame]],
+) -> tuple[DataFrame, DataFrame]:
+    return process_original_dfs(data[0]), process_additional_dfs(data[1])
 
 
 def avg_weather_data(df: DataFrame, mapper: DataFrame) -> DataFrame:
@@ -417,78 +401,3 @@ def avg_weather_data(df: DataFrame, mapper: DataFrame) -> DataFrame:
     df[to_round] = df[to_round].round()
     df = df.astype(dtypes)
     return df[["county"] + groups + avg_c]
-
-
-def get_lag(df: DataFrame, dt: str, lag: int, c: str) -> DataFrame:
-    """
-    Shift 'dt' column by 'lag' days and rename the 'c' column.
-
-    Parameters
-    ----------
-    df : DataFrame
-        Input DataFrame.
-    dt : str
-        Name of the datetime column to be shifted.
-    lag : int
-        Number of days to shift.
-    c : str
-        Name of the column to rename.
-
-    Returns
-    -------
-    DataFrame
-        DataFrame with the shifted datetime column and renamed target
-        column.
-
-    Raises
-    ------
-    ValueError
-        If 'lag' is less than 2.
-    """
-    if lag < 2:
-        raise ValueError(f"'lag' must be at least 2 days, got {lag}")
-    return df.assign(**{dt: df[dt] + pd.Timedelta(days=lag)}).rename(
-        columns={c: f"{lag}d_lag_{c}"}
-    )
-
-
-def get_moving_average(
-    dfgb: DataFrameGroupBy,
-    c: str,
-    window: int,
-) -> DataFrame:
-    """
-    Compute rolling mean for a specified column of a grouped DataFrame
-    and shift the datetime column by 48 hours.
-
-    Parameters
-    ----------
-    dfgb : DataFrameGroupBy
-        Grouped DataFrame (result of df.groupby(..., as_index=False)),
-        where the original DataFrame was sorted by the datetime index.
-    c : str
-        Name of the column to aggregate.
-    window : int
-        Rolling window size in hours (min_periods=window).
-
-    Returns
-    -------
-    DataFrame
-        DataFrame containing:
-        - all grouping columns,
-        - the datetime column, shifted by 48 h,
-        - a new column with the rolling mean.
-    """
-
-    return (
-        dfgb[c]
-        .rolling(pd.Timedelta(f"{window}h"), min_periods=window, closed="left")
-        .mean()
-        .reset_index()
-        .pipe(
-            lambda x: x.assign(
-                **{x.columns[0]: x[x.columns[0]] + pd.Timedelta(hours=48)}
-            )
-        )
-        .rename(columns={c: f"{window}h_ma_2d_lag_{c}"})
-    )

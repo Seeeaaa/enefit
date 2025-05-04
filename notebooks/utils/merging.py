@@ -1,10 +1,13 @@
 import pandas as pd
-from utils.process import avg_weather_data
 from pandas import DataFrame
+from notebooks.utils.preprocessing import avg_weather_data
 
 def merge_all_dfs(
-    original: dict[str, DataFrame], additional: dict[str, DataFrame]
+    data: tuple[dict[str, DataFrame], dict[str, DataFrame]],
 ) -> DataFrame:
+    # def merge_all_dfs(
+    #     original: dict[str, DataFrame], additional: dict[str, DataFrame]
+    # ) -> DataFrame:
     """Merge all dataframes into one"""
     (
         train_df,
@@ -16,16 +19,16 @@ def merge_all_dfs(
         station_county_mapping_df,
         county_id_to_name_map,
     ) = (
-        original["train"],
-        original["gas_prices"],
-        original["client"],
-        original["electricity_prices"],
-        original["forecast_weather"],
-        original["historical_weather"],
-        original["station_county_mapping"],
-        original["county_id_to_name_map"],
+        data[0]["train"],
+        data[0]["gas_prices"],
+        data[0]["client"],
+        data[0]["electricity_prices"],
+        data[0]["forecast_weather"],
+        data[0]["historical_weather"],
+        data[0]["station_county_mapping"],
+        data[0]["county_id_to_name_map"],
     )
-    holidays_df = additional["holidays"]
+    holidays_df = data[1]["holidays"]
 
     # # Drop spring NaNs and impute autumn NaNs with interpolated values
     # na_datetimes = train_df[train_df.isna().any(axis=1)]["datetime"].unique()
