@@ -4,7 +4,12 @@ import pandas as pd
 import numpy as np
 
 
-def get_lag(df: DataFrame, dt: str, lag: int, c: str) -> DataFrame:
+def get_lag(
+    df: DataFrame,
+    dt: str = "datetime",
+    lag: int = 2,
+    columns: list[str] = ["target"],
+) -> DataFrame:
     """
     Shift 'dt' column by 'lag' days and rename the 'c' column.
 
@@ -15,9 +20,9 @@ def get_lag(df: DataFrame, dt: str, lag: int, c: str) -> DataFrame:
     dt : str
         Name of the datetime column to be shifted.
     lag : int
-        Number of days to shift.
-    c : str
-        Name of the column to rename.
+        Number of days to shift (must be 2 or greater).
+    columns : list[str]
+        List of columns to rename.
 
     Returns
     -------
@@ -29,18 +34,25 @@ def get_lag(df: DataFrame, dt: str, lag: int, c: str) -> DataFrame:
     ------
     ValueError
         If 'lag' is less than 2.
+    KeyError
+        If any column from 'columns' is not in the DataFrame.
     """
     if lag < 2:
         raise ValueError(f"'lag' must be at least 2 days, got {lag}")
+
+    missing = [col for col in columns if col not in df.columns]
+    if missing:
+        raise KeyError(f"Columns not found in DataFrame: {missing}")
+
     return df.assign(**{dt: df[dt] + pd.Timedelta(days=lag)}).rename(
-        columns={c: f"{lag}d_lag_{c}"}
+        columns={col: f"{lag}d_lag_{col}" for col in columns}
     )
 
 
 def get_moving_average(
     dfgb: DataFrameGroupBy,
-    c: str,
-    window: int,
+    c: str = "target",
+    window: int = 24,
 ) -> DataFrame:
     """
     Compute rolling mean for a specified column of a grouped DataFrame
@@ -67,7 +79,9 @@ def get_moving_average(
 
     return (
         dfgb[c]
-        .rolling(pd.Timedelta(f"{window}h"), min_periods=window, closed="left")
+        .rolling(
+            pd.Timedelta(f"{window} h"), min_periods=window, closed="left"
+        )
         .mean()
         .reset_index()
         .pipe(
@@ -124,7 +138,7 @@ def add_cyclic_datetime_features(
         ("weekday", 7),
         ("day_of_month", 30.4),
         ("month", 12),
-        ("day_of_year", 365.25),
+        ("day_of_year", 365),  # No leap years in original data
         ("week_of_year", 52),
         ("quarter", 4),
     ]:
@@ -145,3 +159,7 @@ def add_cyclic_datetime_features(
         )
 
     return df
+
+
+# def feature_engineering(df: DataFrame) -> DataFrame:
+#     return df

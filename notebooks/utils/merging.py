@@ -1,10 +1,9 @@
 import pandas as pd
-from pandas import DataFrame
-from notebooks.utils.preprocessing import avg_weather_data
+from pandas import DataFrame, Series
+from utils.preprocessing import avg_weather_data
 
-def merge_all_dfs(
-    data: tuple[dict[str, DataFrame], dict[str, DataFrame]],
-) -> DataFrame:
+
+def merge_all_dfs(datasets: dict[str, DataFrame | Series]) -> DataFrame:
     # def merge_all_dfs(
     #     original: dict[str, DataFrame], additional: dict[str, DataFrame]
     # ) -> DataFrame:
@@ -17,18 +16,19 @@ def merge_all_dfs(
         forecast_weather_df,
         historical_weather_df,
         station_county_mapping_df,
-        county_id_to_name_map,
+        # county_id_to_name_map,
+        holidays_df,
     ) = (
-        data[0]["train"],
-        data[0]["gas_prices"],
-        data[0]["client"],
-        data[0]["electricity_prices"],
-        data[0]["forecast_weather"],
-        data[0]["historical_weather"],
-        data[0]["station_county_mapping"],
-        data[0]["county_id_to_name_map"],
+        datasets["train"],
+        datasets["gas_prices"],
+        datasets["client"],
+        datasets["electricity_prices"],
+        datasets["forecast_weather"],
+        datasets["historical_weather"],
+        datasets["station_county_mapping"],
+        # datasets["county_id_to_name_map"],
+        datasets["holidays"],
     )
-    holidays_df = data[1]["holidays"]
 
     # # Drop spring NaNs and impute autumn NaNs with interpolated values
     # na_datetimes = train_df[train_df.isna().any(axis=1)]["datetime"].unique()
@@ -99,18 +99,6 @@ def merge_all_dfs(
                 "data_block_id",
             ]
         ]
-    )
-
-    # Add a flag indicating Daylight Saving Time
-    df["dst"] = ~(
-        (
-            (df.datetime >= "2021-10-31 03:00:00")
-            & (df.datetime < "2022-03-27 03:00:00")
-        )
-        | (
-            (df.datetime >= "2022-10-30 03:00:00")
-            & (df.datetime < "2023-03-26 03:00:00")
-        )
     )
 
     # Add different categories of holidays

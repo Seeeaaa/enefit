@@ -4,6 +4,7 @@ import numpy as np
 
 
 def process_train(df: DataFrame) -> DataFrame:
+    df = df.copy()
     # Drop spring NaNs and impute autumn NaNs with interpolated values
     na_datetimes = df[df.isna().any(axis=1)]["datetime"].unique()
     df = df.loc[~df["datetime"].isin(na_datetimes[1::2])].assign(
@@ -23,14 +24,22 @@ def process_train(df: DataFrame) -> DataFrame:
         {
             "county": "category",
             "product_type": "category",
-            "is_business": "category",
-            "is_consumption": "category",
+            "is_business": "bool",
+            "is_consumption": "bool",
             "datetime": "datetime64[ns]",
             "target": "float32",
             "data_block_id": "uint16",
         }
     )
     df["date"] = df["datetime"].dt.date
+    df["dst"] = (
+        (df["datetime"] < "2021-10-31 03:00:00")
+        | (
+            (df["datetime"] >= "2022-03-27 03:00:00")
+            & (df["datetime"] < "2022-10-30 03:00:00")
+        )
+        | (df["datetime"] >= "2023-03-26 03:00:00")
+    )
     return df
 
 
@@ -65,7 +74,7 @@ def process_client(df: DataFrame) -> DataFrame:
         {
             "county": "category",
             "product_type": "category",
-            "is_business": "category",
+            "is_business": "bool",
             "date": "datetime64[ns]",
             "eic_count": "uint32",
             "installed_capacity": "float32",
@@ -318,10 +327,19 @@ def process_additional_dfs(data: dict[str, DataFrame]) -> dict[str, DataFrame]:
     return data
 
 
+# def process_all_dfs(
+#     data: tuple[dict[str, DataFrame | Series], dict[str, DataFrame]],
+# ) -> tuple[DataFrame, DataFrame]:
+#     return process_original_dfs(data[0]), process_additional_dfs(data[1])
+
+
 def process_all_dfs(
-    data: tuple[dict[str, DataFrame | Series], dict[str, DataFrame]],
-) -> tuple[DataFrame, DataFrame]:
-    return process_original_dfs(data[0]), process_additional_dfs(data[1])
+    datasets: tuple[dict[str, DataFrame | Series], dict[str, DataFrame]],
+) -> dict[str, DataFrame | Series]:
+    original, additional = datasets
+    original = process_original_dfs(original)
+    additional = process_additional_dfs(additional)
+    return original | additional
 
 
 def avg_weather_data(df: DataFrame, mapper: DataFrame) -> DataFrame:
