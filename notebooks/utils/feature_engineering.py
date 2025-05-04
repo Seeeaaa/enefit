@@ -50,21 +50,22 @@ def get_lag(
 
 
 def get_moving_average(
-    dfgb: DataFrameGroupBy,
-    c: str = "target",
+    sorted_dfgb: DataFrameGroupBy,
+    columns: list[str] = ["target"],
     window: int = 24,
 ) -> DataFrame:
     """
-    Compute rolling mean for a specified column of a grouped DataFrame
+    Compute rolling mean for specified columns of a grouped DataFrame
     and shift the datetime column by 48 hours.
 
     Parameters
     ----------
-    dfgb : DataFrameGroupBy
+    sorted_dfgb : DataFrameGroupBy
         Grouped DataFrame (result of df.groupby(..., as_index=False)),
-        where the original DataFrame was sorted by the datetime index.
-    c : str
-        Name of the column to aggregate.
+        where the original DataFrame was sorted by the datetime64[ns]
+        index.
+    columns : list[str]
+        List of columns to aggregate.
     window : int
         Rolling window size in hours (min_periods=window).
 
@@ -73,24 +74,32 @@ def get_moving_average(
     DataFrame
         DataFrame containing:
         - all grouping columns,
-        - the datetime column, shifted by 48 h,
-        - a new column with the rolling mean.
+        - the datetime column, shifted by 48 hours,
+        - a new columns with the rolling mean.
     """
+    txt = "h_ma_2d_lag_"
+    missing = [c for c in columns if c not in sorted_dfgb.obj.columns]
+    if missing:
+        raise KeyError(f"Columns not found in DataFrame: {missing}")
 
-    return (
-        dfgb[c]
+    # Store original dtypes
+    original_dtypes = {
+        f"{window}{txt}{c}": sorted_dfgb.obj[c].dtype for c in columns
+    }
+    df_rolled = (
+        sorted_dfgb[columns]
         .rolling(
             pd.Timedelta(f"{window} h"), min_periods=window, closed="left"
         )
         .mean()
         .reset_index()
-        .pipe(
-            lambda x: x.assign(
-                **{x.columns[0]: x[x.columns[0]] + pd.Timedelta(hours=48)}
-            )
-        )
-        .rename(columns={c: f"{window}h_ma_2d_lag_{c}"})
     )
+    df_rolled.iloc[:, 0] += pd.Timedelta(hours=48) # Shift datetime
+    df_rolled = df_rolled.rename(
+        columns={c: f"{window}{txt}{c}" for c in columns}
+    )
+    df_rolled = df_rolled.astype(original_dtypes)
+    return df_rolled
 
 
 def add_cyclic_datetime_features(
@@ -142,8 +151,12 @@ def add_cyclic_datetime_features(
         ("week_of_year", 52),
         ("quarter", 4),
     ]:
-        df[f"{col}_sin"] = np.sin(2 * np.pi * df[col] / period)
-        df[f"{col}_cos"] = np.cos(2 * np.pi * df[col] / period)
+        df[f"{col}_sin"] = np.sin(2 * np.pi * df[col] / period).astype(
+            "float32"
+        )
+        df[f"{col}_cos"] = np.cos(2 * np.pi * df[col] / period).astype(
+            "float32"
+        )
 
     if drop_raw:
         df = df.drop(
