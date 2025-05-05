@@ -3,8 +3,10 @@ from pandas import DataFrame, Series
 
 
 def load_all_raw_data(
-    main_path: str, additional_path: str
-) -> tuple[dict[str, DataFrame | Series], dict[str, DataFrame]]:
+    main_path: str, additional_path: str | None = None
+) -> tuple[
+    dict[str, DataFrame | Series], dict[str, DataFrame | Series] | None
+]:
     """
     Load all raw datasets from competition and external sources.
 
@@ -12,24 +14,25 @@ def load_all_raw_data(
     ----------
     main_path : str
         Directory containing competition CSV and JSON files.
-    additional_path : str
-        Directory containing external datasets.
+    additional_path : str | None = None
+        Directory containing external datasets. If None, additional data
+        is not loaded.
 
     Returns
     -------
-    dict[str, pd.DataFrame | pd.Series]
-        Dictionary with the following keys:
-          - 'train'
-          - 'gas_prices'
-          - 'client'
-          - 'electricity_prices'
-          - 'forecast_weather'
-          - 'historical_weather'
-          - 'station_county_mapping'
-          - 'county_id_to_name_map'
-          - 'holidays'
+    tuple[
+        dict[str, DataFrame | Series],
+        dict[str, DataFrame | Series] | None
+    ]
+        Tuple containing two dictionaries:
+        - Dictionary with the original datasets. Keys are:
+        'train', 'gas_prices', 'client', 'electricity_prices',
+        'forecast_weather', 'historical_weather',
+        'station_county_mapping', 'county_id_to_name_map'.
+        - Dictionary with the additional datasets. Keys are:
+          - 'holidays' (if additional_path is not None)
     """
-    return {
+    original_data = {
         "train": pd.read_csv(f"{main_path}train.csv"),
         "gas_prices": pd.read_csv(f"{main_path}gas_prices.csv"),
         "client": pd.read_csv(f"{main_path}client.csv"),
@@ -46,6 +49,10 @@ def load_all_raw_data(
         "county_id_to_name_map": pd.read_json(
             f"{main_path}county_id_to_name_map.json", typ="series"
         ),
-    }, {
-        "holidays": pd.read_csv(f"{additional_path}holidays.csv"),
     }
+    additional_data = None
+    if additional_path:
+        additional_data = {
+            "holidays": pd.read_csv(f"{additional_path}holidays.csv")
+        }
+    return original_data, additional_data

@@ -94,7 +94,7 @@ def get_moving_average(
         .mean()
         .reset_index()
     )
-    df_rolled.iloc[:, 0] += pd.Timedelta(hours=48) # Shift datetime
+    df_rolled.iloc[:, 0] += pd.Timedelta(hours=48)  # Shift datetime
     df_rolled = df_rolled.rename(
         columns={c: f"{window}{txt}{c}" for c in columns}
     )
@@ -147,9 +147,9 @@ def add_cyclic_datetime_features(
         ("weekday", 7),
         ("day_of_month", 30.4),
         ("month", 12),
-        ("day_of_year", 365),  # No leap years in original data
+        ("day_of_year", 365),  # No leap years in the original data
         ("week_of_year", 52),
-        ("quarter", 4),
+        ("quarter", 4),  # Only 4 quarters in a year
     ]:
         df[f"{col}_sin"] = np.sin(2 * np.pi * df[col] / period).astype(
             "float32"
@@ -172,6 +172,11 @@ def add_cyclic_datetime_features(
         )
 
     return df
+
+
+# installed_capacity/eic_count to target ratios
+# sun elevation angle and radiation features
+# forecast and historical averaged weather data with weights
 
 
 # def feature_engineering(df: DataFrame) -> DataFrame:

@@ -96,40 +96,21 @@ def process_electricity_prices(df: DataFrame) -> DataFrame:
 
 
 def process_forecast_weather(df: DataFrame) -> DataFrame:
-    df = df.rename(
-        columns={
-            "10_metre_u_wind_component": "u_component",
-            "10_metre_v_wind_component": "v_component",
-        }
-    )
-    df["windspeed"] = np.sqrt(df["u_component"] ** 2 + df["v_component"] ** 2)
-
-    df = df[
-        [
-            "latitude",
-            "longitude",
-            "origin_datetime",
-            "hours_ahead",
-            "forecast_datetime",
-            "data_block_id",
-            "temperature",
-            "dewpoint",
-            "snowfall",
-            "total_precipitation",
-            "cloudcover_low",
-            "cloudcover_mid",
-            "cloudcover_high",
-            "cloudcover_total",
-            "u_component",
-            "v_component",
-            "windspeed",
-            "direct_solar_radiation",
-            "surface_solar_radiation_downwards",
-        ]
-    ]
-
     df[["latitude", "longitude"]] = (
         df[["latitude", "longitude"]].round(1).mul(10)
+    )
+
+    df["hours_ahead"] = pd.to_timedelta(df["hours_ahead"], "h")
+
+    precipitation_threshold = 0.1  # Threshold in mm
+    df["snowfall_mm"] = df["snowfall"] * 1000  # To mm
+    df["total_precipitation_mm"] = df["total_precipitation"] * 1000  # To mm
+    df[["snowfall_mm", "total_precipitation_mm"]] = df[
+        ["snowfall_mm", "total_precipitation_mm"]
+    ].mask(
+        df[["snowfall_mm", "total_precipitation_mm"]].abs()
+        < precipitation_threshold,
+        0,
     )
 
     df[
@@ -152,7 +133,41 @@ def process_forecast_weather(df: DataFrame) -> DataFrame:
         .mul(100)
     )
 
-    df = df.astype(
+    df = df.rename(
+        columns={
+            "10_metre_u_wind_component": "u_component",
+            "10_metre_v_wind_component": "v_component",
+        }
+    )
+    df["windspeed"] = np.sqrt(df["u_component"] ** 2 + df["v_component"] ** 2)
+
+    df[["direct_solar_radiation", "surface_solar_radiation_downwards"]] = df[
+        ["direct_solar_radiation", "surface_solar_radiation_downwards"]
+    ].clip(lower=0)
+
+    df = df[
+        [
+            "latitude",
+            "longitude",
+            "origin_datetime",
+            "hours_ahead",
+            "forecast_datetime",
+            "data_block_id",
+            "temperature",
+            "dewpoint",
+            "snowfall_mm",
+            "total_precipitation_mm",
+            "cloudcover_low",
+            "cloudcover_mid",
+            "cloudcover_high",
+            "cloudcover_total",
+            "u_component",
+            "v_component",
+            "windspeed",
+            "direct_solar_radiation",
+            "surface_solar_radiation_downwards",
+        ]
+    ].astype(
         {
             "latitude": "uint16",
             "longitude": "uint16",
@@ -161,12 +176,8 @@ def process_forecast_weather(df: DataFrame) -> DataFrame:
             "data_block_id": "uint16",
             "temperature": "float32",
             "dewpoint": "float32",
-            "snowfall": "float32",
-            "total_precipitation": "float32",
-            # "cloudcover_low": "float32",
-            # "cloudcover_mid": "float32",
-            # "cloudcover_high": "float32",
-            # "cloudcover_total": "float32",
+            "snowfall_mm": "float32",
+            "total_precipitation_mm": "float32",
             "cloudcover_low": "uint8",
             "cloudcover_mid": "uint8",
             "cloudcover_high": "uint8",
@@ -179,16 +190,31 @@ def process_forecast_weather(df: DataFrame) -> DataFrame:
         }
     )
 
-    df["hours_ahead"] = pd.to_timedelta(df["hours_ahead"], "h")
-
     return df
 
 
 def process_historical_weather(df: DataFrame) -> DataFrame:
-    df = df.rename(columns={"windspeed_10m": "windspeed"})
+    # Drop duplicates
+    hw_to_drop = [1176339, 1176343]
+    df = df.drop(index=hw_to_drop).reset_index(drop=True)
+
+    df[["latitude", "longitude"]] = (
+        df[["latitude", "longitude"]].round(1).mul(10)
+    )
+
+    snow_water_density_ratio = 0.1
+    df["snowfall"] = df["snowfall"] * 10 * snow_water_density_ratio
+    df = df.rename(
+        columns={
+            "snowfall": "snowfall_mm",
+            "rain": "rain_mm",
+            "windspeed_10m": "windspeed",
+        }
+    )
     df["winddirection_10m"] = np.deg2rad(df["winddirection_10m"])
     df["u_component"] = -df["windspeed"] * np.sin(df["winddirection_10m"])
     df["v_component"] = -df["windspeed"] * np.cos(df["winddirection_10m"])
+
     df = df[
         [
             "latitude",
@@ -197,28 +223,21 @@ def process_historical_weather(df: DataFrame) -> DataFrame:
             "data_block_id",
             "temperature",
             "dewpoint",
-            "rain",
-            "snowfall",
+            "snowfall_mm",
+            "rain_mm",
             "surface_pressure",
             "cloudcover_low",
             "cloudcover_mid",
             "cloudcover_high",
             "cloudcover_total",
             "windspeed",
-            # "winddirection_10m",
             "u_component",
             "v_component",
             "shortwave_radiation",
             "direct_solar_radiation",
             "diffuse_radiation",
         ]
-    ]
-
-    df[["latitude", "longitude"]] = (
-        df[["latitude", "longitude"]].round(1).mul(10)
-    )
-
-    df = df.astype(
+    ].astype(
         {
             "latitude": "uint16",
             "longitude": "uint16",
@@ -226,19 +245,14 @@ def process_historical_weather(df: DataFrame) -> DataFrame:
             "data_block_id": "uint16",
             "temperature": "float32",
             "dewpoint": "float32",
-            "rain": "float32",
-            "snowfall": "float32",
+            "snowfall_mm": "float32",
+            "rain_mm": "float32",
             "surface_pressure": "float32",
-            # "cloudcover_low": "float32",
-            # "cloudcover_mid": "float32",
-            # "cloudcover_high": "float32",
-            # "cloudcover_total": "float32",
             "cloudcover_low": "uint8",
             "cloudcover_mid": "uint8",
             "cloudcover_high": "uint8",
             "cloudcover_total": "uint8",
             "windspeed": "float32",
-            # "winddirection_10m": "uint16",
             "u_component": "float32",
             "v_component": "float32",
             "shortwave_radiation": "uint16",
@@ -246,9 +260,6 @@ def process_historical_weather(df: DataFrame) -> DataFrame:
             "diffuse_radiation": "uint16",
         }
     )
-
-    hw_to_drop = [1176339, 1176343]
-    df = df.drop(index=hw_to_drop).reset_index(drop=True)
 
     return df
 
@@ -327,17 +338,22 @@ def process_additional_dfs(data: dict[str, DataFrame]) -> dict[str, DataFrame]:
     return data
 
 
-# def process_all_dfs(
-#     data: tuple[dict[str, DataFrame | Series], dict[str, DataFrame]],
-# ) -> tuple[DataFrame, DataFrame]:
-#     return process_original_dfs(data[0]), process_additional_dfs(data[1])
+# def process_all_dfs(datasets: dict[str, DataFrame | Series]) -> dict[str, DataFrame | Series]:
+#     original, additional = datasets
+#     original = process_original_dfs(original)
+#     additional = process_additional_dfs(additional)
+#     return original | additional
 
 
 def process_all_dfs(
-    datasets: tuple[dict[str, DataFrame | Series], dict[str, DataFrame]],
+    datasets: tuple[
+        dict[str, DataFrame | Series], dict[str, DataFrame] | None
+    ],
 ) -> dict[str, DataFrame | Series]:
     original, additional = datasets
     original = process_original_dfs(original)
+    if additional is None:
+        return original
     additional = process_additional_dfs(additional)
     return original | additional
 

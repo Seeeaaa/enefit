@@ -1,12 +1,10 @@
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame  # , Series
 from utils.preprocessing import avg_weather_data
 
 
-def merge_all_dfs(datasets: dict[str, DataFrame | Series]) -> DataFrame:
-    # def merge_all_dfs(
-    #     original: dict[str, DataFrame], additional: dict[str, DataFrame]
-    # ) -> DataFrame:
+# def merge_all_dfs(datasets: dict[str, DataFrame | Series]) -> DataFrame:
+def merge_all_dfs(datasets: dict[str, DataFrame]) -> DataFrame:
     """Merge all dataframes into one"""
     (
         train_df,
@@ -30,16 +28,10 @@ def merge_all_dfs(datasets: dict[str, DataFrame | Series]) -> DataFrame:
         datasets["holidays"],
     )
 
-    # # Drop spring NaNs and impute autumn NaNs with interpolated values
-    # na_datetimes = train_df[train_df.isna().any(axis=1)]["datetime"].unique()
-    # df = train_df.loc[~train_df["datetime"].isin(na_datetimes[1::2])].assign(
-    #     target=lambda x: x["target"].interpolate()
-    # )
-
     df = pd.merge(
         left=train_df,
         right=client_df.drop(columns=["date"]),
-        how="inner",  # save dtype
+        how="inner",  # Save dtype
         on=["county", "product_type", "is_business", "data_block_id"],
     )
 
