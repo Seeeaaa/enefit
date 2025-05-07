@@ -94,10 +94,15 @@ def merge_all_dfs(datasets: dict[str, DataFrame]) -> DataFrame:
     )
 
     # Add different categories of holidays
-    df = (
-        df.merge(holidays_df, how="left", on=["date"])
-        .fillna({"holiday_type": "ordinary_day"})
-        .astype({"holiday_type": "category"})
-    )
+    # df = (
+    #     df.merge(holidays_df, how="left", on=["date"])
+    #     .fillna({"holiday_type": "ordinary_day"})
+    #     .astype({"holiday_type": "category"})
+    # )
+    df = df.merge(
+        holidays_df,
+        how="left",
+        on="date",
+    ).fillna({c: 0 for c in holidays_df.columns.drop("date")})
 
     return df

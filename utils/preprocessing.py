@@ -325,24 +325,17 @@ def process_original_dfs(
 
 
 def process_additional_dfs(data: dict[str, DataFrame]) -> dict[str, DataFrame]:
-    # Process holidays
+    columns = data["holidays"].holiday_type.unique()
     data["holidays"] = (
-        data["holidays"]
-        .drop(columns=["name"])
-        .assign(
-            date=lambda x: pd.to_datetime(x["date"]).dt.date,
-            holiday_type=lambda x: x["holiday_type"],
+        pd.crosstab(
+            data["holidays"]["date"],
+            data["holidays"]["holiday_type"],
         )
+        .rename_axis(columns=None)
+        .reset_index()
+        .astype({c: "category" for c in columns})
     )
-
     return data
-
-
-# def process_all_dfs(datasets: dict[str, DataFrame | Series]) -> dict[str, DataFrame | Series]:
-#     original, additional = datasets
-#     original = process_original_dfs(original)
-#     additional = process_additional_dfs(additional)
-#     return original | additional
 
 
 def process_all_dfs(
@@ -421,7 +414,7 @@ def avg_weather_data(df: DataFrame, mapper: DataFrame) -> DataFrame:
             df.groupby(groups, as_index=False, observed=True)[avg_c]
             .mean()
             # .assign(county="unknown"),
-            .assign(county=np.uint8(12)),  # type: ignore
+            .assign(county=np.uint8(12)),
             df.groupby(groups + ["county"], as_index=False, observed=True)[
                 avg_c
             ].mean(),
