@@ -32,14 +32,6 @@ def process_train(df: DataFrame) -> DataFrame:
         }
     )
     df["date"] = df["datetime"].dt.date
-    df["dst"] = (
-        (df["datetime"] < "2021-10-31 03:00:00")
-        | (
-            (df["datetime"] >= "2022-03-27 03:00:00")
-            & (df["datetime"] < "2022-10-30 03:00:00")
-        )
-        | (df["datetime"] >= "2023-03-26 03:00:00")
-    )
     return df
 
 

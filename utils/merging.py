@@ -1,10 +1,13 @@
 import pandas as pd
 from pandas import DataFrame  # , Series
 from utils.preprocessing import avg_weather_data
+from pandas._typing import MergeHow
 
 
 # def merge_all_dfs(datasets: dict[str, DataFrame | Series]) -> DataFrame:
-def merge_all_dfs(datasets: dict[str, DataFrame]) -> DataFrame:
+def merge_all_dfs(
+    datasets: dict[str, DataFrame], how: MergeHow = "inner"
+) -> DataFrame:
     """Merge all dataframes into one"""
     (
         train_df,
@@ -31,19 +34,20 @@ def merge_all_dfs(datasets: dict[str, DataFrame]) -> DataFrame:
     df = pd.merge(
         left=train_df,
         right=client_df.drop(columns=["date"]),
-        how="inner",  # Save dtype
+        # how="inner",  # Save dtype
+        how=how,
         on=["county", "product_type", "is_business", "data_block_id"],
     )
 
     df = df.merge(
         right=gas_prices_df,
-        how="inner",
+        how=how,
         on=["data_block_id"],
     )
 
     df = df.merge(
         right=electricity_prices_df,
-        how="inner",
+        how=how,
         left_on=["datetime", "data_block_id"],
         right_on=["electricity_datetime", "data_block_id"],
     ).drop(columns=["electricity_datetime"])
@@ -54,7 +58,7 @@ def merge_all_dfs(datasets: dict[str, DataFrame]) -> DataFrame:
             forecast_weather_df, station_county_mapping_df
         ).add_prefix(fp),
         # how="left",
-        how="inner",
+        how=how,
         left_on=["county", "datetime", "data_block_id"],
         right_on=[
             fp + c for c in ["county", "forecast_datetime", "data_block_id"]
@@ -78,7 +82,7 @@ def merge_all_dfs(datasets: dict[str, DataFrame]) -> DataFrame:
     df = df.merge(
         hw_df.add_prefix(hp),
         # how="left",
-        how="inner",
+        how=how,
         left_on=["county", "datetime"],
         right_on=[hp + c for c in ["county", "fully_available_at"]],
     ).drop(
@@ -94,14 +98,9 @@ def merge_all_dfs(datasets: dict[str, DataFrame]) -> DataFrame:
     )
 
     # Add different categories of holidays
-    # df = (
-    #     df.merge(holidays_df, how="left", on=["date"])
-    #     .fillna({"holiday_type": "ordinary_day"})
-    #     .astype({"holiday_type": "category"})
-    # )
     df = df.merge(
         holidays_df,
-        how="left",
+        how=how,
         on="date",
     ).fillna({c: 0 for c in holidays_df.columns.drop("date")})
 

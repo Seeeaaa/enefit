@@ -102,6 +102,18 @@ def get_moving_average(
     return df_rolled
 
 
+def add_dst_flag(df: DataFrame, datetime_col: str = "datetime") -> DataFrame:
+    df["dst"] = (
+        (df[datetime_col] < "2021-10-31 03:00:00")
+        | (
+            (df[datetime_col] >= "2022-03-27 03:00:00")
+            & (df[datetime_col] < "2022-10-30 03:00:00")
+        )
+        | (df[datetime_col] >= "2023-03-26 03:00:00")
+    )
+    return df
+
+
 def add_cyclic_datetime_features(
     df: DataFrame, datetime_col: str = "datetime", drop_raw: bool = True
 ) -> DataFrame:
