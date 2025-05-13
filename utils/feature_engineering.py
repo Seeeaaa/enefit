@@ -89,7 +89,9 @@ def get_moving_average(
     df_rolled = (
         sorted_dfgb[columns]
         .rolling(
-            pd.Timedelta(f"{window} h"), min_periods=window, closed="left"
+            pd.Timedelta(f"{window} h"),
+            # min_periods=window,
+            closed="left"
         )
         .mean()
         .reset_index()
