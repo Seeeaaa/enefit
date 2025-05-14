@@ -14,4 +14,6 @@
 
 *.pbix
 
+catboost_info
+
 # *.gitattributes
