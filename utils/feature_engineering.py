@@ -91,7 +91,7 @@ def get_moving_average(
         .rolling(
             pd.Timedelta(f"{window} h"),
             # min_periods=window,
-            closed="left"
+            closed="left",
         )
         .mean()
         .reset_index()
