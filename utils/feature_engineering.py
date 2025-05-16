@@ -51,8 +51,9 @@ def get_lag(
 
 def get_moving_average(
     sorted_dfgb: DataFrameGroupBy,
-    columns: list[str] = ["target"],
+    columns: list[str],
     window: int = 24,
+    min_periods: int | None = None,
 ) -> DataFrame:
     """
     Compute rolling mean for specified columns of a grouped DataFrame
@@ -68,6 +69,9 @@ def get_moving_average(
         List of columns to aggregate.
     window : int
         Rolling window size in hours (min_periods=window).
+    min_periods : int | None
+        Minimum number of observations in the window required to have a
+        value otherwise None.
 
     Returns
     -------
@@ -90,7 +94,7 @@ def get_moving_average(
         sorted_dfgb[columns]
         .rolling(
             pd.Timedelta(f"{window} h"),
-            # min_periods=window,
+            min_periods=min_periods,
             closed="left",
         )
         .mean()

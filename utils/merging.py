@@ -34,7 +34,6 @@ def merge_all_dfs(
     df = pd.merge(
         left=train_df,
         right=client_df.drop(columns=["date"]),
-        # how="inner",  # Save dtype
         how=how,
         on=["county", "product_type", "is_business", "data_block_id"],
     )
@@ -57,7 +56,6 @@ def merge_all_dfs(
         avg_weather_data(
             forecast_weather_df, station_county_mapping_df
         ).add_prefix(fp),
-        # how="left",
         how=how,
         left_on=["county", "datetime", "data_block_id"],
         right_on=[
@@ -81,7 +79,6 @@ def merge_all_dfs(
     hw_df["fully_available_at"] = hw_df["datetime"] + pd.Timedelta("2 d")
     df = df.merge(
         hw_df.add_prefix(hp),
-        # how="left",
         how=how,
         left_on=["county", "datetime"],
         right_on=[hp + c for c in ["county", "fully_available_at"]],
