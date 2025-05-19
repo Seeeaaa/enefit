@@ -1,5 +1,4 @@
-
-1. Overview
+# 1. Overview
 <font size=6>Enefit - Predict Energy Behavior of Prosumers.</font>
 <font size=4>Predict Prosumer Energy Patterns and Minimize Imbalance Costs.</font>
 https://www.kaggle.com/competitions/predict-energy-behavior-of-prosumers
@@ -12,19 +11,23 @@ Enefit is one of the biggest energy companies in Baltic region. As experts in th
 At present, Enefit is attempting to solve the imbalance problem by developing internal predictive models and relying on third-party forecasts. However, these methods have proven to be insufficient due to their low accuracy in forecasting the energy behavior of prosumers. The shortcomings of these current methods lie in their inability to accurately account for the wide range of variables that influence prosumer behavior, leading to high imbalance costs. By opening up the challenge to the world's best data scientists through the Kaggle platform, Enefit aims to leverage a broader pool of expertise and novel approaches to improve the accuracy of these predictions and consequently reduce the imbalance and associated costs.
 - **Evaluation**
 Submissions are evaluated on the Mean Absolute Error (MAE) between the predicted return and the observed target. The formula is given by:
-$$ MAE = \frac{1}{n} \sum_{i=1}^{n}{|y_i-x_i|}$$
+
+$$\ MAE = \frac{1}{n} \sum_{i=1}^{n}{|y_i-x_i|}$$
+
 Where:
 - $n$ is the total number of data points.
 - $y_i$ is the predicted value for data point i.
 - $x_i$ is the observed value for data point i.
-- **Timeline**
+**Timeline**
 This is a future data prediction competition with an active training phase and a second period where selected submissions will be evaluated against future ground truth data.
+
 **Training Timeline**
 - November 1, 2023 - Start Date.
 - January 24, 2024 - Entry Deadline. You must accept the competition rules before this date in order to compete.
 - January 24, 2024 - Team Merger Deadline. This is the last day participants may join or merge teams.
 - January 31, 2024 - Final Submission Deadline.
 All deadlines are at 11:59 PM UTC on the corresponding day unless otherwise noted. The competition organizers reserve the right to update the contest timeline if they deem it necessary.
+
 **Prediction Timeline**
 Starting after the final submission deadline there will be periodic updates to the leaderboard to reflect future data updates that will be evaluated against selected submissions. We anticipate 1-3 updates before the final evaluation.
 - April 30, 2024 - Competition End Date.
