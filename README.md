@@ -4,12 +4,15 @@
 https://www.kaggle.com/competitions/predict-energy-behavior-of-prosumers
 
 The goal of the competition is to create an energy prediction model of prosumers to reduce energy imbalance costs. This competition aims to tackle the issue of energy imbalance, a situation where the energy expected to be used doesn't line up with the actual energy used or produced. Prosumers, who both consume and generate energy, contribute a large part of the energy imbalance. Despite being only a small part of all consumers, their unpredictable energy use causes logistical and financial problems for the energy companies.
-- **Description**
+
+**Description**
 The number of prosumers is rapidly increasing, and solving the problems of energy imbalance and their rising costs is vital. If left unaddressed, this could lead to increased operational costs, potential grid instability, and inefficient use of energy resources. If this problem were effectively solved, it would significantly reduce the imbalance costs, improve the reliability of the grid, and make the integration of prosumers into the energy system more efficient and sustainable. Moreover, it could potentially incentivize more consumers to become prosumers, knowing that their energy behavior can be adequately managed, thus promoting renewable energy production and use.
-- **About us**
+
+**About us**
 Enefit is one of the biggest energy companies in Baltic region. As experts in the field of energy, we help customers plan their green journey in a personal and flexible manner as well as implement it by using environmentally friendly energy solutions.
 At present, Enefit is attempting to solve the imbalance problem by developing internal predictive models and relying on third-party forecasts. However, these methods have proven to be insufficient due to their low accuracy in forecasting the energy behavior of prosumers. The shortcomings of these current methods lie in their inability to accurately account for the wide range of variables that influence prosumer behavior, leading to high imbalance costs. By opening up the challenge to the world's best data scientists through the Kaggle platform, Enefit aims to leverage a broader pool of expertise and novel approaches to improve the accuracy of these predictions and consequently reduce the imbalance and associated costs.
-- **Evaluation**
+
+**Evaluation**
 Submissions are evaluated on the Mean Absolute Error (MAE) between the predicted return and the observed target. The formula is given by:
 
 $$\ MAE = \frac{1}{n} \sum_{i=1}^{n}{|y_i-x_i|}$$
@@ -18,6 +21,7 @@ Where:
 - $n$ is the total number of data points.
 - $y_i$ is the predicted value for data point i.
 - $x_i$ is the observed value for data point i.
+
 **Timeline**
 This is a future data prediction competition with an active training phase and a second period where selected submissions will be evaluated against future ground truth data.
 
@@ -26,6 +30,7 @@ This is a future data prediction competition with an active training phase and a
 - January 24, 2024 - Entry Deadline. You must accept the competition rules before this date in order to compete.
 - January 24, 2024 - Team Merger Deadline. This is the last day participants may join or merge teams.
 - January 31, 2024 - Final Submission Deadline.
+
 All deadlines are at 11:59 PM UTC on the corresponding day unless otherwise noted. The competition organizers reserve the right to update the contest timeline if they deem it necessary.
 
 **Prediction Timeline**
@@ -34,6 +39,7 @@ Starting after the final submission deadline there will be periodic updates to t
 # 2. Dataset Description
 Your challenge in this competition is to predict the amount of electricity produced and consumed by Estonian energy customers who have installed solar panels. You'll have access to weather data, the relevant energy prices, and records of the installed photovoltaic capacity.
 This is a forecasting competition using the time series API. The private leaderboard will be determined using real data gathered after the submission period closes.
+
 💡 Nota bene:
 All datasets follow the same time convention. Time is given in EET/EEST. Most of the variables are a sum or an average over a period of 1 hour. The datetime column (whatever its name) always gives the start of the 1-hour period. However, for the weather datasets, some variables such as temperature or cloud cover, are given for a specific time, which is always the end of the 1-hour period.
 ## Files
