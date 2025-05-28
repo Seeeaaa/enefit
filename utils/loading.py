@@ -25,12 +25,12 @@ def load_all_raw_data(
         dict[str, DataFrame | Series] | None
     ]
         Tuple containing two dictionaries:
-        - Dictionary with the original datasets. Keys are:
-        'train', 'gas_prices', 'client', 'electricity_prices',
-        'forecast_weather', 'historical_weather',
-        'station_county_mapping', 'county_id_to_name_map'.
-        - Dictionary with the additional datasets. Keys are:
-          - 'holidays' (if additional_path is not None)
+        1) Dictionary with the original datasets. Keys are:
+            'train', 'gas_prices', 'client', 'electricity_prices',
+            'forecast_weather', 'historical_weather',
+            'station_county_mapping', 'county_id_to_name_map'.
+        2) Dictionary with the additional datasets. Keys are:
+            'holidays' (if additional_path is not None)
     """
     original_data = {
         "train": pd.read_csv(f"{main_path}train.csv"),
