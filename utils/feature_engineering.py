@@ -195,7 +195,7 @@ def add_cyclic_datetime_features(
 def split_by_equal_days(
     dt: Series,
     train_days: int = 1,
-    fh_days: int = 1,  # Only daily predictions as per problem statement
+    fh: int = 1,  # Only daily predictions as per problem statement
     n_splits: int = 1,
     expanding: bool = False,
 ) -> list[dict[str, tuple[Timestamp, Timestamp]]]:
@@ -209,7 +209,7 @@ def split_by_equal_days(
         Series with hourly datetime values.
     train_days : int, default=1
         Number of days in each training window.
-    fh_days : int, default=1
+    fh : int, default=1
         Forecast horizon in days (length of validation window). Each
         forecast day runs from 00:00 to 23:00. Default is 1, since all
         predictions are made day-by-day.
@@ -234,10 +234,10 @@ def split_by_equal_days(
     """
     dt = dt.dt.floor("D")  # Processing on a day scope
 
-    train_days = Timedelta(days=train_days)
-    train_days_delta = train_days - Timedelta(days=1)  # Indexing from 0
+    train_days_range = Timedelta(days=train_days)
+    train_days_delta = train_days_range - Timedelta(days=1)  # Indexing from 0
 
-    fh_days = Timedelta(days=fh_days)
+    fh_days = Timedelta(days=fh)
     fh_days_delta = fh_days - Timedelta(days=1)  # Indexing from 0
 
     first_day = dt.min()
@@ -246,7 +246,7 @@ def split_by_equal_days(
     # test_start = last_day - fh_days_delta
     # test_end = last_day + pd.Timedelta(hours=23)
 
-    intermediate_period_start = first_day + train_days
+    intermediate_period_start = first_day + train_days_range
     intermediate_period_end = last_day - fh_days_delta
     intermediate_period_days = (
         intermediate_period_end - intermediate_period_start
