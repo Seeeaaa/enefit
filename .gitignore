@@ -1,6 +1,5 @@
 *.csv
 *.geojson
-*.json
 *.zip
 
 *.ipynb_checkpoints
@@ -10,10 +9,12 @@
 *.toml
 *.lock
 
+docker-compose.yml
+
 *.png
 
 *.pbix
 
 catboost_info
-
+county_id_to_name_map.json
 # *.gitattributes
