@@ -9,7 +9,7 @@
 *.toml
 *.lock
 
-docker-compose.yml
+# docker-compose.yml
 
 *.png
 

@@ -1,0 +1,20 @@
+services:
+  jlpe:
+    image: vyxan/jlpe_image:ml
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/app/pet_project
+      - ../jl_settings:/root/.jupyter
+    working_dir: /app   
+    entrypoint: sh -c "poetry run jupyter lab --allow-root --no-browser --ip=0.0.0.0 --IdentityProvider.token=''"
+    stdin_open: true
+    tty: true
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
