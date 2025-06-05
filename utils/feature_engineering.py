@@ -286,6 +286,97 @@ def split_by_equal_days(
     return splits
 
 
+def split_intervals(
+    dt: Series,
+    train_share: float = 0.64,
+    val_share: float = 0.16,
+    n_val_splits: int = 3,
+    # test_share: float = 0.20,
+    n_test_splits: int = 3,
+    fh: int = 7,
+    expanding: bool = False,
+) -> tuple[
+    list[dict[str, tuple[pd.Timestamp, pd.Timestamp]]],
+    list[dict[str, tuple[pd.Timestamp, pd.Timestamp]]],
+]:
+    if train_share + val_share >= 1.0:
+        raise ValueError(
+            "train_share + val_share must be strictly less than 1.0"
+        )
+    dt = dt.dt.floor("d").drop_duplicates(ignore_index=True)
+
+    train_start = dt.min()
+    test_end = dt.max() + Timedelta(hours=23)
+
+    total_days_interval = Timedelta(
+        days=len(pd.date_range(train_start, test_end))
+    )
+
+    train_range = (total_days_interval * train_share).ceil("d")
+    train_end = train_start + train_range - Timedelta(hours=1)  # exclude 00:00
+
+    val_start = train_start + train_range
+    val_range = (total_days_interval * val_share).ceil("d")
+    val_end = val_start + val_range - Timedelta(hours=1)  # exclude 00:00
+
+    test_start = val_start + val_range
+    test_range = (
+        test_end - test_start + Timedelta(hours=1)
+    )  # include last 23 hours
+
+    # initial_data = {
+    #     # "all": total_days_interval,
+    #     "train_start": train_start,
+    #     "train_range": train_range,
+    #     "train_end": train_end,
+    #     "val_start": val_start,
+    #     "val_range": val_range,
+    #     "val_end": val_end,
+    #     "test_start": test_start,
+    #     "test_range": test_range,
+    #     "test_end": test_end,
+    # }
+
+    val_step = (val_range / n_val_splits).ceil("d")
+    sub_val = []
+    for i in range(n_val_splits):
+        i_train_start = train_start + (not expanding) * i * val_step
+        i_train_end = train_end + i * val_step
+        i_val_start = val_start + i * val_step
+        i_val_end = i_val_start + Timedelta(days=fh - 1, hours=23)
+
+        sub_val.append(
+            {
+                "train": (i_train_start, i_train_end),
+                "val": (i_val_start, i_val_end),
+            }
+        )
+
+    test_step = (test_range / n_test_splits).ceil("d")
+
+    sub_test = []
+    for i in range(n_test_splits):
+        i_train_start = train_start + int(not expanding) * (
+            val_range + i * test_step
+        )
+        i_train_end = val_end + i * test_step
+        i_test_start = test_start + i * test_step
+        i_test_end = i_test_start + Timedelta(days=fh - 1, hours=23)
+
+        sub_test.append(
+            {
+                "train": (i_train_start, i_train_end),
+                "test": (i_test_start, i_test_end),
+            }
+        )
+
+    return (
+        # initial_data,
+        sub_val,
+        sub_test,
+    )
+
+
 # installed_capacity/eic_count to target ratios
 # sun elevation angle and radiation features
 # forecast and historical averaged weather data with weights
