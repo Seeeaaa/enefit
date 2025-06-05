@@ -286,7 +286,7 @@ def split_by_equal_days(
     return splits
 
 
-def split_intervals(
+def get_split_bounds(
     dt: Series,
     train_share: float = 0.64,
     val_share: float = 0.16,
@@ -348,7 +348,10 @@ def split_intervals(
         sub_val.append(
             {
                 "train": (i_train_start, i_train_end),
-                "val": (i_val_start, i_val_end),
+                "test": (  # "val"
+                    i_val_start,
+                    i_val_end,
+                ),
             }
         )
 
