@@ -14,7 +14,7 @@
 *.png
 
 *.pbix
-
+xgb_baseline
 catboost_info
 county_id_to_name_map.json
 # *.gitattributes
