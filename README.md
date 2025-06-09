@@ -14,6 +14,7 @@ The number of prosumers is rapidly increasing, creating challenges for grid stab
 All notebooks include commentary, tables, and plots to illustrate steps. Simply click on any `.ipynb` file in this repository to view outputs on GitHub.
 
 ## Directory Structure
+```
 ├── notebooks/
 │ ├── 0. Competition Overview.ipynb
 │ ├── 1. Exploratory Data Analysis.ipynb
@@ -29,3 +30,4 @@ All notebooks include commentary, tables, and plots to illustrate steps. Simply 
 ├── .gitignore
 ├── README.md
 └── docker-compose.yml
+```
