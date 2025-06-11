@@ -5,11 +5,12 @@ This repository contains a pet project based on the Kaggle competition **[Enefit
 
 The number of prosumers is rapidly increasing, creating challenges for grid stability and imbalance costs. Forecasting of consumption and production can reduce operational expenses and improve renewable integration. This project addresses these challenges by building and tuning ML models on the Kaggle "Enefit - Predict Energy Behavior of Prosumers" competition dataset.
 
-**Notebooks**
-**`0. Competition Overview.ipynb`** - all information about competition from the host
-**`1. Exploratory Data Analysis.ipynb`** - data analysis: missing values, time series consistency, data merging, feature engineering, and visualizations
-**`2. Baselines Comparison.ipynb`** - comparison of baseline models
-**`3. Hyperparameter Optimization.ipynb`** - hyperparameter search for the selected model using Optuna. Final evaluation metrics and feature importance analysis
+## Notebooks
+
+**`0. Competition Overview.ipynb`** - all information about competition from the host.  
+**`1. Exploratory Data Analysis.ipynb`** - data analysis: missing values, time series consistency, data merging, feature engineering, and visualizations.  
+**`2. Baselines Comparison.ipynb`** - comparison of baseline models.  
+**`3. Hyperparameter Optimization.ipynb`** - hyperparameter search for the selected model using Optuna. Final evaluation metrics and feature importance analysis.  
 
 All notebooks include commentary, tables, and plots to illustrate steps. Simply click on any `.ipynb` file in this repository to view outputs on GitHub.
 
