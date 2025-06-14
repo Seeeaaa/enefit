@@ -1,4 +1,4 @@
-from pandas import DataFrame, Series, Timedelta, Timestamp
+from pandas import DataFrame, Series, Timedelta, Timestamp, DateOffset
 from pandas.core.groupby.generic import DataFrameGroupBy
 import pandas as pd
 import numpy as np
@@ -378,6 +378,30 @@ def get_split_bounds(
         sub_val,
         sub_test,
     )
+
+
+def get_month_splits(
+    start, train_range, test_range, shift, splits
+) -> list[dict[str, tuple[Timestamp, Timestamp]]]:
+    return [
+        {
+            "train": (
+                start,
+                start
+                + DateOffset(months=train_range + shift * i)
+                - Timedelta(hours=1),
+            ),
+            "test": (
+                start + DateOffset(months=train_range + shift * i),
+                start
+                + DateOffset(months=train_range + test_range + shift * i)
+                - Timedelta(hours=1),
+            ),
+        }
+        for i in range(splits)
+    ]
+    # start_ts + pd.DateOffset(months=(12 + 3 * i)) - Timedelta(hours=1),
+    # start_ts + pd.DateOffset(months=19) - Timedelta(hours=1),
 
 
 # installed_capacity/eic_count to target ratios
