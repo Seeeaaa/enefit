@@ -13,5 +13,6 @@ county_id_to_name_map.json
 *.pbix
 # *.gitattributes
 
+reports
 xgb_baseline
 catboost_info
