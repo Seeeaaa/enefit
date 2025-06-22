@@ -4,8 +4,6 @@ county_id_to_name_map.json
 *.geojson
 *.zip
 *.ipynb_checkpoints
-*.Trash-0
-*.python-version
 *.toml
 *.lock
 *.db
