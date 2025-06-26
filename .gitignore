@@ -2,6 +2,7 @@ county_id_to_name_map.json
 
 *.csv
 *.geojson
+*.json
 *.zip
 *.ipynb_checkpoints
 *.toml
