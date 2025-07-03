@@ -374,7 +374,6 @@ def get_split_bounds(
         )
 
     return (
-        # initial_data,
         sub_val,
         sub_test,
     )
@@ -407,7 +406,3 @@ def get_month_splits(
 # installed_capacity/eic_count to target ratios
 # sun elevation angle and radiation features
 # forecast and historical averaged weather data with weights
-
-
-# def feature_engineering(df: DataFrame) -> DataFrame:
-#     return df
