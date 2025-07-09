@@ -291,7 +291,6 @@ def get_split_bounds(
     train_share: float = 0.64,
     val_share: float = 0.16,
     n_val_splits: int = 3,
-    # test_share: float = 0.20,
     n_test_splits: int = 3,
     fh: int = 7,
     expanding: bool = False,
