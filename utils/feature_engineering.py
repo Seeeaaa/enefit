@@ -323,19 +323,6 @@ def get_split_bounds(
         test_end - test_start + Timedelta(hours=1)
     )  # include last 23 hours
 
-    # initial_data = {
-    #     # "all": total_days_interval,
-    #     "train_start": train_start,
-    #     "train_range": train_range,
-    #     "train_end": train_end,
-    #     "val_start": val_start,
-    #     "val_range": val_range,
-    #     "val_end": val_end,
-    #     "test_start": test_start,
-    #     "test_range": test_range,
-    #     "test_end": test_end,
-    # }
-
     val_step = (val_range / n_val_splits).ceil("d")
     sub_val = []
     for i in range(n_val_splits):
