@@ -385,8 +385,6 @@ def get_month_splits(
         }
         for i in range(splits)
     ]
-    # start_ts + pd.DateOffset(months=(12 + 3 * i)) - Timedelta(hours=1),
-    # start_ts + pd.DateOffset(months=19) - Timedelta(hours=1),
 
 
 # installed_capacity/eic_count to target ratios
