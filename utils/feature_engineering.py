@@ -243,9 +243,6 @@ def split_by_equal_days(
     first_day = dt.min()
     last_day = dt.max()
 
-    # test_start = last_day - fh_days_delta
-    # test_end = last_day + pd.Timedelta(hours=23)
-
     intermediate_period_start = first_day + train_days_range
     intermediate_period_end = last_day - fh_days_delta
     intermediate_period_days = (
@@ -279,7 +276,6 @@ def split_by_equal_days(
             {
                 "train": (train_start, train_end),
                 "val": (val_start, val_end),
-                # "test": (test_start, test_end),
             }
         )
 
