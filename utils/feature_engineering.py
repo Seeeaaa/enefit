@@ -330,7 +330,7 @@ def get_split_bounds(
         sub_val.append(
             {
                 "train": (i_train_start, i_train_end),
-                "test": (  # "val"
+                "test": (
                     i_val_start,
                     i_val_end,
                 ),
