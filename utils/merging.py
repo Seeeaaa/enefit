@@ -4,7 +4,6 @@ from utils.preprocessing import avg_weather_data
 from pandas._typing import MergeHow
 
 
-# def merge_all_dfs(datasets: dict[str, DataFrame | Series]) -> DataFrame:
 def merge_all_dfs(
     datasets: dict[str, DataFrame], how: MergeHow = "inner"
 ) -> DataFrame:
