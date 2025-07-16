@@ -1,5 +1,5 @@
 import pandas as pd
-from pandas import DataFrame  # , Series
+from pandas import DataFrame
 from utils.preprocessing import avg_weather_data
 from pandas._typing import MergeHow
 
