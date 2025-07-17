@@ -16,7 +16,6 @@ def merge_all_dfs(
         forecast_weather_df,
         historical_weather_df,
         station_county_mapping_df,
-        # county_id_to_name_map,
         holidays_df,
     ) = (
         datasets["train"],
@@ -26,7 +25,6 @@ def merge_all_dfs(
         datasets["forecast_weather"],
         datasets["historical_weather"],
         datasets["station_county_mapping"],
-        # datasets["county_id_to_name_map"],
         datasets["holidays"],
     )
 
