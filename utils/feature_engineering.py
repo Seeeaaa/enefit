@@ -167,8 +167,7 @@ def add_cyclic_datetime_features(
         ("month", 12),
         ("day_of_year", 365),  # No leap years in the original data
         ("week_of_year", 52),
-        ("quarter", 4),  # Only 4 quarters in a year
-    ]:
+        ("quarter", 4),
         df[f"{col}_sin"] = np.sin(2 * np.pi * df[col] / period).astype(
             "float32"
         )
