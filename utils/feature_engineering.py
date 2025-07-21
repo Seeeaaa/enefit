@@ -382,7 +382,3 @@ def get_month_splits(
         for i in range(splits)
     ]
 
-
-# installed_capacity/eic_count to target ratios
-# sun elevation angle and radiation features
-# forecast and historical averaged weather data with weights
