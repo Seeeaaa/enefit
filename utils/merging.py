@@ -48,7 +48,7 @@ def merge_all_dfs(
         right_on=["electricity_datetime", "data_block_id"],
     ).drop(columns=["electricity_datetime"])
 
-    fp = "f1_"  # 1 Prefix for columns related to the 1 day forecast
+    fp = "f1_"  # Prefix for columns related to the 1 day forecast
     df = df.merge(
         avg_weather_data(
             forecast_weather_df, station_county_mapping_df
