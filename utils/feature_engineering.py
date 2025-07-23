@@ -165,7 +165,7 @@ def add_cyclic_datetime_features(
         ("weekday", 7),
         ("day_of_month", 30.4),
         ("month", 12),
-        ("day_of_year", 365),  # No leap years in the original data
+        ("day_of_year", 365),
         ("week_of_year", 52),
         ("quarter", 4),
     ]:
@@ -381,4 +381,3 @@ def get_month_splits(
         }
         for i in range(splits)
     ]
-
