@@ -192,94 +192,94 @@ def add_cyclic_datetime_features(
     return df
 
 
-def split_by_equal_days(
-    dt: Series,
-    train_days: int = 1,
-    fh: int = 1,  # Only daily predictions as per problem statement
-    n_splits: int = 1,
-    expanding: bool = False,
-) -> list[dict[str, tuple[Timestamp, Timestamp]]]:
-    """
-    Split datetime Series into multiple train and validation splits. A
-    day is counted from 00:00 to 23:00 inclusive.
+# def split_by_equal_days(
+#     dt: Series,
+#     train_days: int = 1,
+#     fh: int = 1,  # Only daily predictions as per problem statement
+#     n_splits: int = 1,
+#     expanding: bool = False,
+# ) -> list[dict[str, tuple[Timestamp, Timestamp]]]:
+#     """
+#     Split datetime Series into multiple train and validation splits. A
+#     day is counted from 00:00 to 23:00 inclusive.
 
-    Parameters
-    ----------
-    dt : pd.Series
-        Series with hourly datetime values.
-    train_days : int, default=1
-        Number of days in each training window.
-    fh : int, default=1
-        Forecast horizon in days (length of validation window). Each
-        forecast day runs from 00:00 to 23:00. Default is 1, since all
-        predictions are made day-by-day.
-    n_splits : int, default=1
-        Number of (train, validation) subsamples to generate.
-    expanding : bool, default=False
-        If True, use an expanding training window, otherwise use a
-        rolling window of fixed length.
+#     Parameters
+#     ----------
+#     dt : pd.Series
+#         Series with hourly datetime values.
+#     train_days : int, default=1
+#         Number of days in each training window.
+#     fh : int, default=1
+#         Forecast horizon in days (length of validation window). Each
+#         forecast day runs from 00:00 to 23:00. Default is 1, since all
+#         predictions are made day-by-day.
+#     n_splits : int, default=1
+#         Number of (train, validation) subsamples to generate.
+#     expanding : bool, default=False
+#         If True, use an expanding training window, otherwise use a
+#         rolling window of fixed length.
 
-    Returns
-    -------
-    List[dict[str, tuple[pd.Timestamp, pd.Timestamp]]]
-        A list of dictionaries. Each dictionary has keys "train" and
-        "val", mapping to start and end timestamps for that split.
+#     Returns
+#     -------
+#     List[dict[str, tuple[pd.Timestamp, pd.Timestamp]]]
+#         A list of dictionaries. Each dictionary has keys "train" and
+#         "val", mapping to start and end timestamps for that split.
 
-    Raises
-    ------
-    ValueError
-        If `n_splits` is greater than the number of days available in
-        the intermediate period between the initial training window and
-        the final forecast horizon.
-    """
-    dt = dt.dt.floor("D")  # Processing on a day scope
+#     Raises
+#     ------
+#     ValueError
+#         If `n_splits` is greater than the number of days available in
+#         the intermediate period between the initial training window and
+#         the final forecast horizon.
+#     """
+#     dt = dt.dt.floor("D")  # Processing on a day scope
 
-    train_days_range = Timedelta(days=train_days)
-    train_days_delta = train_days_range - Timedelta(days=1)  # Indexing from 0
+#     train_days_range = Timedelta(days=train_days)
+#     train_days_delta = train_days_range - Timedelta(days=1)  # Indexing from 0
 
-    fh_days = Timedelta(days=fh)
-    fh_days_delta = fh_days - Timedelta(days=1)  # Indexing from 0
+#     fh_days = Timedelta(days=fh)
+#     fh_days_delta = fh_days - Timedelta(days=1)  # Indexing from 0
 
-    first_day = dt.min()
-    last_day = dt.max()
+#     first_day = dt.min()
+#     last_day = dt.max()
 
-    intermediate_period_start = first_day + train_days_range
-    intermediate_period_end = last_day - fh_days_delta
-    intermediate_period_days = (
-        intermediate_period_end - intermediate_period_start
-    ).days
+#     intermediate_period_start = first_day + train_days_range
+#     intermediate_period_end = last_day - fh_days_delta
+#     intermediate_period_days = (
+#         intermediate_period_end - intermediate_period_start
+#     ).days
 
-    if n_splits > intermediate_period_days + 1:
-        raise ValueError(
-            "n_splits exceeds the length of the validation period."
-        )
+#     if n_splits > intermediate_period_days + 1:
+#         raise ValueError(
+#             "n_splits exceeds the length of the validation period."
+#         )
 
-    splits = []
+#     splits = []
 
-    base_step = Timedelta(days=intermediate_period_days // n_splits)
-    step_rem = Timedelta(days=intermediate_period_days % n_splits)
+#     base_step = Timedelta(days=intermediate_period_days // n_splits)
+#     step_rem = Timedelta(days=intermediate_period_days % n_splits)
 
-    for step in range(n_splits):
-        offset = base_step * step + min(Timedelta(days=step), step_rem)
-        if expanding:
-            train_start = first_day
-            train_end = (
-                train_start + train_days_delta + offset + Timedelta(hours=23)
-            )
-        else:
-            train_start = first_day + offset
-            train_end = train_start + train_days_delta + Timedelta(hours=23)
+#     for step in range(n_splits):
+#         offset = base_step * step + min(Timedelta(days=step), step_rem)
+#         if expanding:
+#             train_start = first_day
+#             train_end = (
+#                 train_start + train_days_delta + offset + Timedelta(hours=23)
+#             )
+#         else:
+#             train_start = first_day + offset
+#             train_end = train_start + train_days_delta + Timedelta(hours=23)
 
-        val_start = train_end + Timedelta(hours=1)
-        val_end = val_start + fh_days_delta + Timedelta(hours=23)
-        splits.append(
-            {
-                "train": (train_start, train_end),
-                "val": (val_start, val_end),
-            }
-        )
+#         val_start = train_end + Timedelta(hours=1)
+#         val_end = val_start + fh_days_delta + Timedelta(hours=23)
+#         splits.append(
+#             {
+#                 "train": (train_start, train_end),
+#                 "val": (val_start, val_end),
+#             }
+#         )
 
-    return splits
+#     return splits
 
 
 def get_split_bounds(
