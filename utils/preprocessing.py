@@ -186,8 +186,7 @@ def process_forecast_weather(df: DataFrame) -> DataFrame:
 
 
 def process_historical_weather(df: DataFrame) -> DataFrame:
-    # Drop duplicates
-    hw_to_drop = [1176339, 1176343]
+    hw_to_drop = [1176339, 1176343] # Drop duplicates
     df = df.drop(index=hw_to_drop).reset_index(drop=True)
 
     df[["latitude", "longitude"]] = (
