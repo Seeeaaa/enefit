@@ -186,7 +186,7 @@ def process_forecast_weather(df: DataFrame) -> DataFrame:
 
 
 def process_historical_weather(df: DataFrame) -> DataFrame:
-    hw_to_drop = [1176339, 1176343] # Drop duplicates
+    hw_to_drop = [1176339, 1176343]  # Drop duplicates
     df = df.drop(index=hw_to_drop).reset_index(drop=True)
 
     df[["latitude", "longitude"]] = (
@@ -315,7 +315,10 @@ def process_original_dfs(
     }
 
 
-def process_additional_dfs(data: dict[str, DataFrame]) -> dict[str, DataFrame]:
+def process_additional_dfs(
+    data: dict[str, DataFrame],
+) -> dict[str, DataFrame]:
+    # holidays
     columns = data["holidays"].holiday_type.unique()
     data["holidays"] = (
         pd.crosstab(
@@ -330,16 +333,31 @@ def process_additional_dfs(data: dict[str, DataFrame]) -> dict[str, DataFrame]:
 
 
 def process_all_dfs(
-    datasets: tuple[
-        dict[str, DataFrame | Series], dict[str, DataFrame] | None
-    ],
+    datasets: dict[str, DataFrame | Series],
 ) -> dict[str, DataFrame | Series]:
-    original, additional = datasets
-    original = process_original_dfs(original)
-    if additional is None:
-        return original
-    additional = process_additional_dfs(additional)
-    return original | additional
+    # datasets = datasets.copy()
+    additional = datasets.pop("holidays", None)
+    processed_original = process_original_dfs(datasets)
+
+    if isinstance(additional, DataFrame):
+        holidays_dict = {"holidays": additional}
+        processed_additional = process_additional_dfs(holidays_dict)
+        return processed_original | processed_additional
+    else:
+        return processed_original
+
+
+# def process_all_dfs(
+#     datasets: tuple[
+#         dict[str, DataFrame | Series], dict[str, DataFrame] | None
+#     ],
+# ) -> dict[str, DataFrame | Series]:
+#     original, additional = datasets
+#     original = process_original_dfs(original)
+#     if additional is None:
+#         return original
+#     additional = process_additional_dfs(additional)
+#     return original | additional
 
 
 def avg_weather_data(df: DataFrame, mapper: DataFrame) -> DataFrame:
