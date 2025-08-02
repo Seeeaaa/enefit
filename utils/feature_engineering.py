@@ -294,6 +294,41 @@ def get_split_bounds(
     list[dict[str, tuple[pd.Timestamp, pd.Timestamp]]],
     list[dict[str, tuple[pd.Timestamp, pd.Timestamp]]],
 ]:
+    """
+    Compute time-based train-validation-test split boundaries for time
+    series cross-validation.
+
+    Parameters
+    ----------
+    dt : Series
+        Series of datetime values (will be floored to days and
+        deduplicated).
+    train_share : float, default=0.64
+        Proportion of the dataset to include in the training set.
+    val_share : float, default=0.16
+        Proportion of the dataset to include in the validation set.
+    n_val_splits : int, default=3
+        Number of validation splits to generate.
+    n_test_splits : int, default=3
+        Number of test splits to generate.
+    fh : int, default=7
+        Forecast horizon in days for each validation/test set.
+    expanding : bool, default=False
+        Whether the training window should expand in each split (True) or slide (False).
+
+    Returns
+    -------
+    tuple of list of dict
+        A tuple containing two lists:
+        - Validation splits, each as a dict with 'train' and 'test' keys mapping to (start, end) tuples.
+        - Test splits in the same format.
+
+    Raises
+    ------
+    ValueError
+        If train_share + val_share >= 1.0.
+    """
+
     if train_share + val_share >= 1.0:
         raise ValueError(
             "train_share + val_share must be strictly less than 1.0"
