@@ -6,11 +6,19 @@ services:
     volumes:
       - .:/app/pet_project
       - ../jl_settings:/root/.jupyter
-    working_dir: /app   
-    entrypoint: sh -c "poetry run jupyter lab --allow-root --no-browser --ip=0.0.0.0 --IdentityProvider.token='' --ServerApp.disable_check_xsrf=True"
+    working_dir: /app
+    entrypoint: |
+      sh -c '
+        (cd /app/pet_project && poetry install) && \
+        poetry run jupyter lab \
+          --allow-root \
+          --no-browser \
+          --ip=0.0.0.0 \
+          --IdentityProvider.token="" \
+          --ServerApp.disable_check_xsrf=True
+      '
     stdin_open: true
     tty: true
-
     deploy:
       resources:
         reservations:
