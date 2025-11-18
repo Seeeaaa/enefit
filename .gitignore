@@ -5,7 +5,6 @@ county_id_to_name_map.json
 *.json
 *.zip
 *.ipynb_checkpoints
-*.toml
 *.lock
 *.db
 *.png

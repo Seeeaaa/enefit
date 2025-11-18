@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "enefit"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.13.9"
+
+[tool.poetry.group.git.dependencies]
+nb-clean = "^4.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
