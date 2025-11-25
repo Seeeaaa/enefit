@@ -41,6 +41,7 @@ def get_lag(
         raise ValueError(f"'lag' must be at least 2 days, got {lag}")
 
     missing = [col for col in columns if col not in df.columns]
+
     if missing:
         raise KeyError(f"Columns not found in DataFrame: {missing}")
 
@@ -109,6 +110,10 @@ def get_moving_average(
 
 
 def add_dst_flag(df: DataFrame, datetime_col: str = "datetime") -> DataFrame:
+    """
+    Add a boolean 'dst' column indicating timestamps that fall within
+    the predefined DST intervals for 2021-2023.
+    """
     df["dst"] = (
         (df[datetime_col] < "2021-10-31 03:00:00")
         | (
@@ -224,13 +229,15 @@ def get_split_bounds(
     fh : int, default=7
         Forecast horizon in days for each validation/test set.
     expanding : bool, default=False
-        Whether the training window should expand in each split (True) or slide (False).
+        Whether the training window should expand in each split (True)
+        or slide (False).
 
     Returns
     -------
     tuple of list of dict
         A tuple containing two lists:
-        - Validation splits, each as a dict with 'train' and 'test' keys mapping to (start, end) tuples.
+        - Validation splits, each as a dict with 'train' and 'test'
+        keys mapping to (start, end) tuples.
         - Test splits in the same format.
 
     Raises
