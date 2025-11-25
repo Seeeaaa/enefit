@@ -2,7 +2,6 @@ county_id_to_name_map.json
 
 *.csv
 *.geojson
-*.json
 *.zip
 *.ipynb_checkpoints
 *.lock
@@ -13,5 +12,4 @@ county_id_to_name_map.json
 data
 reports
 xgb_baseline
-xgb_optuna
 catboost_info
