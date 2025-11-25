@@ -31,7 +31,7 @@ def process_train(df: DataFrame) -> DataFrame:
             "data_block_id": "uint16",
         }
     )
-    df["date"] = df["datetime"].dt.date
+    df["date"] = df["datetime"].dt.date  # type: ignore[attr-defined]
     return df
 
 
@@ -84,7 +84,9 @@ def process_electricity_prices(df: DataFrame) -> DataFrame:
         }
     ).assign(
         electricity_datetime=lambda x: x["origin_date"] + pd.Timedelta(2, "d")
-    )[["electricity_datetime", "euros_per_mwh", "data_block_id"]]
+    )[
+        ["electricity_datetime", "euros_per_mwh", "data_block_id"]
+    ]
 
 
 def process_forecast_weather(df: DataFrame) -> DataFrame:
@@ -345,19 +347,6 @@ def process_all_dfs(
         return processed_original
 
 
-# def process_all_dfs(
-#     datasets: tuple[
-#         dict[str, DataFrame | Series], dict[str, DataFrame] | None
-#     ],
-# ) -> dict[str, DataFrame | Series]:
-#     original, additional = datasets
-#     original = process_original_dfs(original)
-#     if additional is None:
-#         return original
-#     additional = process_additional_dfs(additional)
-#     return original | additional
-
-
 def avg_weather_data(df: DataFrame, mapper: DataFrame) -> DataFrame:
     """
     Compute mean aggregated weather data per county and overall.
@@ -418,8 +407,7 @@ def avg_weather_data(df: DataFrame, mapper: DataFrame) -> DataFrame:
     # and concatenate both results
     df = pd.concat(
         [
-            df.groupby(groups, as_index=False, observed=True)[avg_c]
-            .mean()
+            df.groupby(groups, as_index=False, observed=True)[avg_c].mean()
             # .assign(county="unknown"),
             .assign(county=np.uint8(12)),
             df.groupby(groups + ["county"], as_index=False, observed=True)[

@@ -250,7 +250,7 @@ def get_split_bounds(
         raise ValueError(
             "train_share + val_share must be strictly less than 1.0"
         )
-    dt = dt.dt.floor("d").drop_duplicates(ignore_index=True)
+    dt = dt.dt.floor("d").drop_duplicates(ignore_index=True)  # type: ignore[attr-defined]
 
     train_start = dt.min()
     test_end = dt.max() + Timedelta(hours=23)
