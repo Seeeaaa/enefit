@@ -375,7 +375,6 @@ def avg_weather_data(df: DataFrame, mapper: DataFrame) -> DataFrame:
 
     # Merge weather data with county mapping, excluding 'unknown'
     # values which correspond to locations outside of Estonia
-    # df = df.copy()
     df = pd.merge(
         left=mapper.loc[
             # (mapper["county"] != "unknown") &
