@@ -25,7 +25,6 @@ def merge_all_dfs(
         datasets["forecast_weather"],
         datasets["historical_weather"],
         datasets["station_county_mapping"],
-        # datasets["holidays"],
     )
 
     df = pd.merge(
