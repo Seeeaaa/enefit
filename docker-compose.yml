@@ -6,7 +6,7 @@ services:
     volumes:
       - .:/app/pet_project
       - ../jl_settings:/root/.jupyter
-    working_dir: /app
+    working_dir: /app/pet_project/notebooks
     entrypoint: >
       poetry run jupyter lab
       --allow-root
