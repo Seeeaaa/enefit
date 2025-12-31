@@ -7,11 +7,13 @@ services:
       - .:/app/pet_project
       - ../jl_settings:/root/.jupyter
     working_dir: /app/pet_project/notebooks
+      
     entrypoint: >
       poetry run jupyter lab
       --allow-root
       --no-browser
       --ip=0.0.0.0
+      --port=8888
       --IdentityProvider.token=""
       --ServerApp.disable_check_xsrf=True
     stdin_open: true
