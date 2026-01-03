@@ -5,13 +5,11 @@
 *.lock
 *.png
 *.pbix
-
-county_id_to_name_map.json
+*.json
 
 data
 reports
 models
-# xgb_baseline
-# xgb_optuna
+
 catboost_info
 scripts
