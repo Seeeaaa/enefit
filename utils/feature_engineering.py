@@ -333,3 +333,35 @@ def get_month_splits(
         }
         for i in range(splits)
     ]
+
+
+def drop_split(
+    df: DataFrame, bounds: tuple, to_drop: list
+) -> tuple[DataFrame, Series]:
+    """
+    Filters a DataFrame by datetime bounds, drops specified columns,
+    and splits into features and target.
+
+    Parameters
+    ----------
+    df : DataFrame
+        Input DataFrame containing 'datetime' and 'target' columns.
+    bounds : tuple
+        A tuple specifying the datetime range to filter df.
+    to_drop : list
+        List of column names to drop from the df.
+
+    Returns
+    -------
+    X : DataFrame
+        DataFrame with specified columns dropped and 'target' removed.
+    y : Series
+        Target values corresponding to the 'target' column in the
+        filtered DataFrame.
+    """
+    start, end = bounds[0], bounds[1]
+    subset = df[(df["datetime"] >= start) & (df["datetime"] <= end)].drop(
+        to_drop, axis=1
+    )
+    X, y = subset.drop(["target"], axis=1), subset["target"]
+    return X, y
