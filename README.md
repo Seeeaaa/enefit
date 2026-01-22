@@ -30,7 +30,7 @@ All notebooks include commentary, tables, and plots to illustrate steps. Simply 
 │ ├── merging.py
 │ └── preprocessing.py
 ├── .gitignore
-├── README.md
 ├── docker-compose.yml
-└── pyproject.toml
+├── requirements.txt
+└── README.md
 ```
