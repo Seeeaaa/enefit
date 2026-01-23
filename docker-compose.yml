@@ -1,6 +1,7 @@
 services:
   jlpe:
-    image: vyxan/jlpe_image:ml
+    # image: vyxan/jlpe_image:ml
+    image: vyxan/jlpe_image:test
     ports:
       - "8888:8888"
     volumes:

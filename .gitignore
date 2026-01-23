@@ -6,10 +6,11 @@
 *.png
 *.pbix
 *.json
+*.parquet
 
 data
 reports
 models
-
 catboost_info
 scripts
+__pycache__

@@ -68,7 +68,8 @@ def process_client(df: DataFrame) -> DataFrame:
             "product_type": "category",
             "is_business": "bool",
             "date": "datetime64[ns]",
-            "eic_count": "uint32",
+            # "eic_count": "uint32",
+            "eic_count": "float32",
             "installed_capacity": "float32",
             "data_block_id": "uint16",
         }
@@ -107,25 +108,25 @@ def process_forecast_weather(df: DataFrame) -> DataFrame:
         0,
     )
 
-    df[
-        [
-            "cloudcover_low",
-            "cloudcover_mid",
-            "cloudcover_high",
-            "cloudcover_total",
-        ]
-    ] = (
-        df[
-            [
-                "cloudcover_low",
-                "cloudcover_mid",
-                "cloudcover_high",
-                "cloudcover_total",
-            ]
-        ]
-        .round(2)
-        .mul(100)
-    )
+    # df[
+    #     [
+    #         "cloudcover_low",
+    #         "cloudcover_mid",
+    #         "cloudcover_high",
+    #         "cloudcover_total",
+    #     ]
+    # ] = (
+    #     df[
+    #         [
+    #             "cloudcover_low",
+    #             "cloudcover_mid",
+    #             "cloudcover_high",
+    #             "cloudcover_total",
+    #         ]
+    #     ]
+    #     .round(2)
+    #     .mul(100)
+    # )
 
     df = df.rename(
         columns={
@@ -172,10 +173,14 @@ def process_forecast_weather(df: DataFrame) -> DataFrame:
             "dewpoint": "float32",
             "snowfall_mm": "float32",
             "total_precipitation_mm": "float32",
-            "cloudcover_low": "uint8",
-            "cloudcover_mid": "uint8",
-            "cloudcover_high": "uint8",
-            "cloudcover_total": "uint8",
+            # "cloudcover_low": "uint8",
+            # "cloudcover_mid": "uint8",
+            # "cloudcover_high": "uint8",
+            # "cloudcover_total": "uint8",
+            "cloudcover_low": "float32",
+            "cloudcover_mid": "float32",
+            "cloudcover_high": "float32",
+            "cloudcover_total": "float32",
             "u_component": "float32",
             "v_component": "float32",
             "windspeed": "float32",
@@ -240,16 +245,23 @@ def process_historical_weather(df: DataFrame) -> DataFrame:
             "snowfall_mm": "float32",
             "rain_mm": "float32",
             "surface_pressure": "float32",
-            "cloudcover_low": "uint8",
-            "cloudcover_mid": "uint8",
-            "cloudcover_high": "uint8",
-            "cloudcover_total": "uint8",
+            # "cloudcover_low": "uint8",
+            # "cloudcover_mid": "uint8",
+            # "cloudcover_high": "uint8",
+            # "cloudcover_total": "uint8",
+            "cloudcover_low": "float32",
+            "cloudcover_mid": "float32",
+            "cloudcover_high": "float32",
+            "cloudcover_total": "float32",
             "windspeed": "float32",
             "u_component": "float32",
             "v_component": "float32",
-            "shortwave_radiation": "uint16",
-            "direct_solar_radiation": "uint16",
-            "diffuse_radiation": "uint16",
+            # "shortwave_radiation": "uint16",
+            # "direct_solar_radiation": "uint16",
+            "shortwave_radiation": "float32",
+            "direct_solar_radiation": "float32",
+            # "diffuse_radiation": "uint16",
+            "diffuse_radiation": "float32",
         }
     )
     return df
