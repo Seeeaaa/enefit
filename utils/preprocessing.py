@@ -331,7 +331,8 @@ def process_additional_dfs(
     data: dict[str, DataFrame],
 ) -> dict[str, DataFrame]:
     # holidays
-    columns = data["holidays"].holiday_type.unique()
+    data["holidays"]["date"] = pd.to_datetime(data["holidays"]["date"]).dt.date
+    columns = data["holidays"]["holiday_type"].unique()
     data["holidays"] = (
         pd.crosstab(
             data["holidays"]["date"],
