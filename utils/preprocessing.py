@@ -4,7 +4,7 @@ import numpy as np
 
 
 def process_train(df: DataFrame) -> DataFrame:
-    df = df.copy()
+
     # Drop spring NaNs and impute autumn NaNs with interpolated values
     na_datetimes = df[df.isna().any(axis=1)]["datetime"].unique()
     df = df.loc[~df["datetime"].isin(na_datetimes[1::2])].assign(
@@ -31,7 +31,7 @@ def process_train(df: DataFrame) -> DataFrame:
             "data_block_id": "uint16",
         }
     )
-    df["date"] = df["datetime"].dt.date  # type: ignore[attr-defined]
+    df["date"] = df["datetime"].dt.date
     return df
 
 
@@ -68,7 +68,6 @@ def process_client(df: DataFrame) -> DataFrame:
             "product_type": "category",
             "is_business": "bool",
             "date": "datetime64[ns]",
-            # "eic_count": "uint32",
             "eic_count": "float32",
             "installed_capacity": "float32",
             "data_block_id": "uint16",
@@ -107,27 +106,6 @@ def process_forecast_weather(df: DataFrame) -> DataFrame:
         < precipitation_threshold,
         0,
     )
-
-    # df[
-    #     [
-    #         "cloudcover_low",
-    #         "cloudcover_mid",
-    #         "cloudcover_high",
-    #         "cloudcover_total",
-    #     ]
-    # ] = (
-    #     df[
-    #         [
-    #             "cloudcover_low",
-    #             "cloudcover_mid",
-    #             "cloudcover_high",
-    #             "cloudcover_total",
-    #         ]
-    #     ]
-    #     .round(2)
-    #     .mul(100)
-    # )
-
     df = df.rename(
         columns={
             "10_metre_u_wind_component": "u_component",
@@ -173,10 +151,6 @@ def process_forecast_weather(df: DataFrame) -> DataFrame:
             "dewpoint": "float32",
             "snowfall_mm": "float32",
             "total_precipitation_mm": "float32",
-            # "cloudcover_low": "uint8",
-            # "cloudcover_mid": "uint8",
-            # "cloudcover_high": "uint8",
-            # "cloudcover_total": "uint8",
             "cloudcover_low": "float32",
             "cloudcover_mid": "float32",
             "cloudcover_high": "float32",
@@ -245,10 +219,6 @@ def process_historical_weather(df: DataFrame) -> DataFrame:
             "snowfall_mm": "float32",
             "rain_mm": "float32",
             "surface_pressure": "float32",
-            # "cloudcover_low": "uint8",
-            # "cloudcover_mid": "uint8",
-            # "cloudcover_high": "uint8",
-            # "cloudcover_total": "uint8",
             "cloudcover_low": "float32",
             "cloudcover_mid": "float32",
             "cloudcover_high": "float32",
@@ -256,11 +226,8 @@ def process_historical_weather(df: DataFrame) -> DataFrame:
             "windspeed": "float32",
             "u_component": "float32",
             "v_component": "float32",
-            # "shortwave_radiation": "uint16",
-            # "direct_solar_radiation": "uint16",
             "shortwave_radiation": "float32",
             "direct_solar_radiation": "float32",
-            # "diffuse_radiation": "uint16",
             "diffuse_radiation": "float32",
         }
     )
@@ -330,25 +297,28 @@ def process_original_dfs(
 def process_additional_dfs(
     data: dict[str, DataFrame],
 ) -> dict[str, DataFrame]:
+
     # holidays
-    data["holidays"]["date"] = pd.to_datetime(data["holidays"]["date"]).dt.date
-    columns = data["holidays"]["holiday_type"].unique()
-    data["holidays"] = (
-        pd.crosstab(
-            data["holidays"]["date"],
-            data["holidays"]["holiday_type"],
+    holidays_df = (
+        data["holidays"]
+        .drop(columns=["name"])
+        .assign(date=lambda df: pd.to_datetime(df["date"]).dt.date, value=True)
+        .pivot_table(
+            index="date",
+            columns="holiday_type",
+            values="value",
+            aggfunc="any",
+            fill_value=False,
         )
-        .rename_axis(columns=None)
         .reset_index()
-        .astype({c: "category" for c in columns})
     )
-    return data
+    holidays_df.columns.name = None
+    return {**data, "holidays": holidays_df}
 
 
 def process_all_dfs(
     datasets: dict[str, DataFrame | Series],
 ) -> dict[str, DataFrame | Series]:
-    # datasets = datasets.copy()
     additional = datasets.pop("holidays", None)
     processed_original = process_original_dfs(datasets)
 
