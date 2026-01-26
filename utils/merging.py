@@ -1,7 +1,7 @@
 import pandas as pd
 from pandas import DataFrame
-from utils.preprocessing import avg_weather_data
 from pandas._typing import MergeHow
+from utils.preprocessing import avg_weather_data
 
 
 def merge_all_dfs(
@@ -90,17 +90,16 @@ def merge_all_dfs(
         ]
     )
 
-    # Add different categories of holidays
     if "holidays" in datasets:
         holidays_df = datasets["holidays"]
-        holidays_names = holidays_df.columns.drop("date")
+        holidays_names = holidays_df.columns.drop(["date"])
         df = df.merge(
             holidays_df,
             how=how,
             on="date",
-        ).fillna({c: False for c in holidays_names})
+        ).fillna({column: False for column in holidays_names})
         df[holidays_names] = df[holidays_names].astype("bool")
 
-    df = df[df.columns.difference(["data_block_id", "date"], sort=False)]
+    df = df.drop(columns=["data_block_id", "date"])
 
     return df

@@ -11,7 +11,7 @@ def get_lag(
     columns: list[str] = ["target"],
 ) -> DataFrame:
     """
-    Shift 'dt' column by 'lag' days and rename the 'c' column.
+    Shift 'dt' column by 'lag' days and rename selected columns.
 
     Parameters
     ----------
@@ -27,8 +27,7 @@ def get_lag(
     Returns
     -------
     DataFrame
-        DataFrame with the shifted datetime column and renamed target
-        column.
+        DataFrame with the shifted datetime column and renamed columns.
 
     Raises
     ------
@@ -314,8 +313,46 @@ def get_split_bounds(
 
 
 def get_month_splits(
-    start, train_range, test_range, shift, splits
+    start: Timestamp,
+    train_range: int,
+    test_range: int,
+    shift: int,
+    splits: int,
 ) -> list[dict[str, tuple[Timestamp, Timestamp]]]:
+    """
+    Create sliding month-based train/test splits.
+
+    For each split, the training window begins at 'start' and spans
+    'train_range' months, followed immediately by a test window of
+    'test_range' months. For subsequent splits ('splits' > 1), the
+    train/test boundary is shifted forward by 'shift' months for each
+    split.
+
+    End timestamps are inclusive and truncated by one hour, i.e. each
+    interval starts at 00:00 and ends at 23:00.
+
+    Parameters
+    ----------
+    start : pandas.Timestamp
+        Start timestamp of the first training window.
+    train_range : int
+        Number of months in the initial training window.
+    test_range : int
+        Number of months in each test window.
+    shift : int
+        Number of months by which the train/test boundary is shifted
+        forward for each subsequent split.
+    splits : int
+        Number of train/test splits to generate.
+
+    Returns
+    -------
+    splits : list[dict[str, tuple[pandas.Timestamp, pandas.Timestamp]]]
+        List of splits. Each split is a dictionary with keys "train"
+        and "test", where values are (start, end) timestamp tuples
+        defining inclusive time intervals.
+    """
+
     return [
         {
             "train": (
