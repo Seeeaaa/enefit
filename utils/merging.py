@@ -5,7 +5,7 @@ from pandas._typing import MergeHow
 
 
 def merge_all_dfs(
-    datasets: dict[str, DataFrame], how: MergeHow = "inner"
+    datasets: dict[str, DataFrame], how: MergeHow = "left"
 ) -> DataFrame:
     """Merge all dataframes into one"""
     (
@@ -93,10 +93,14 @@ def merge_all_dfs(
     # Add different categories of holidays
     if "holidays" in datasets:
         holidays_df = datasets["holidays"]
+        holidays_names = holidays_df.columns.drop("date")
         df = df.merge(
             holidays_df,
             how=how,
             on="date",
-        ).fillna({c: 0 for c in holidays_df.columns.drop("date")})
+        ).fillna({c: False for c in holidays_names})
+        df[holidays_names] = df[holidays_names].astype("bool")
+
+    df = df[df.columns.difference(["data_block_id", "date"], sort=False)]
 
     return df
