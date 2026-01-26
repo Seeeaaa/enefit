@@ -7,6 +7,7 @@ services:
     volumes:
       - .:/app/pet_project
       - ../jl_settings:/root/.jupyter
+      - ../jl_ipython:/root/.ipython
     working_dir: /app/pet_project/notebooks
       
     entrypoint: >
