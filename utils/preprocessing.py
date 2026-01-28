@@ -234,7 +234,7 @@ def process_historical_weather(df: DataFrame) -> DataFrame:
     return df
 
 
-def process_station_county_mapping(df: DataFrame) -> DataFrame:
+def process_weather_station_to_county_mapping(df: DataFrame) -> DataFrame:
     df = df[
         [
             "latitude",
@@ -267,8 +267,8 @@ def process_station_county_mapping(df: DataFrame) -> DataFrame:
     )
 
 
-def process_county_id_to_name_map(mapper: Series) -> Series:
-    return mapper.str.lower()
+# def process_county_id_to_name_map(mapper: Series) -> Series:
+#     return mapper.str.lower()
 
 
 def process_original_dfs(
@@ -285,12 +285,12 @@ def process_original_dfs(
         "historical_weather": process_historical_weather(
             data["historical_weather"]
         ),
-        "station_county_mapping": process_station_county_mapping(
-            data["station_county_mapping"]
+        "weather_station_to_county_mapping": process_weather_station_to_county_mapping(
+            data["weather_station_to_county_mapping"]
         ),
-        "county_id_to_name_map": process_county_id_to_name_map(
-            data["county_id_to_name_map"]
-        ),
+        # "county_id_to_name_map": process_county_id_to_name_map(
+        #     data["county_id_to_name_map"]
+        # ),
     }
 
 
@@ -302,7 +302,7 @@ def process_additional_dfs(
     holidays_df = (
         data["holidays"]
         .drop(columns=["name"])
-        .assign(date=lambda df: pd.to_datetime(df["date"]).dt.date, value=True)
+        .assign(date=lambda x: pd.to_datetime(x["date"]).dt.date, value=True)
         .pivot_table(
             index="date",
             columns="holiday_type",

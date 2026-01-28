@@ -15,7 +15,7 @@ def merge_all_dfs(
         electricity_prices_df,
         forecast_weather_df,
         historical_weather_df,
-        station_county_mapping_df,
+        weather_station_to_county_mapping_df,
         # holidays_df,
     ) = (
         datasets["train"],
@@ -24,7 +24,7 @@ def merge_all_dfs(
         datasets["electricity_prices"],
         datasets["forecast_weather"],
         datasets["historical_weather"],
-        datasets["station_county_mapping"],
+        datasets["weather_station_to_county_mapping"],
     )
 
     df = pd.merge(
@@ -50,7 +50,7 @@ def merge_all_dfs(
     fp = "f1_"  # Prefix for columns related to the 1 day forecast
     df = df.merge(
         avg_weather_data(
-            forecast_weather_df, station_county_mapping_df
+            forecast_weather_df, weather_station_to_county_mapping_df
         ).add_prefix(fp),
         how=how,
         left_on=["county", "datetime", "data_block_id"],
@@ -71,7 +71,9 @@ def merge_all_dfs(
     )
 
     hp = "h2_"  # Prefix for columns related to 2 day historical data
-    hw_df = avg_weather_data(historical_weather_df, station_county_mapping_df)
+    hw_df = avg_weather_data(
+        historical_weather_df, weather_station_to_county_mapping_df
+    )
     hw_df["fully_available_at"] = hw_df["datetime"] + pd.Timedelta("2 d")
     df = df.merge(
         hw_df.add_prefix(hp),
