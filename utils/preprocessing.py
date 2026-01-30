@@ -31,7 +31,7 @@ def process_train(df: DataFrame) -> DataFrame:
             "data_block_id": "uint16",
         }
     )
-    df["date"] = df["datetime"].dt.date
+    df["date"] = df["datetime"].dt.normalize()
     return df
 
 
@@ -57,7 +57,7 @@ def process_client(df: DataFrame) -> DataFrame:
             "county",
             "product_type",
             "is_business",
-            "date",
+            # "date",
             "eic_count",
             "installed_capacity",
             "data_block_id",
@@ -67,7 +67,7 @@ def process_client(df: DataFrame) -> DataFrame:
             "county": "category",
             "product_type": "category",
             "is_business": "bool",
-            "date": "datetime64[ns]",
+            # "date": "datetime64[ns]",
             "eic_count": "float32",
             "installed_capacity": "float32",
             "data_block_id": "uint16",
@@ -76,29 +76,26 @@ def process_client(df: DataFrame) -> DataFrame:
 
 
 def process_electricity_prices(df: DataFrame) -> DataFrame:
-    return df.astype(
+    df= df.astype(
         {
             "origin_date": "datetime64[ns]",
             "euros_per_mwh": "float32",
             "data_block_id": "uint16",
         }
-    ).assign(
-        electricity_datetime=lambda x: x["origin_date"] + pd.Timedelta(2, "d")
-    )[
-        ["electricity_datetime", "euros_per_mwh", "data_block_id"]
-    ]
+    )
+    df["electricity_datetime"] = df["origin_date"] + pd.Timedelta(2, "d")
+    df = df[["electricity_datetime", "euros_per_mwh", "data_block_id"]]
+    return df
 
 
 def process_forecast_weather(df: DataFrame) -> DataFrame:
+    precipitation_threshold = 0.1  # Threshold in mm
     df[["latitude", "longitude"]] = (
         df[["latitude", "longitude"]].round(1).mul(10)
     )
-
     df["hours_ahead"] = pd.to_timedelta(df["hours_ahead"], "h")
-
-    precipitation_threshold = 0.1  # Threshold in mm
-    df["snowfall_mm"] = df["snowfall"] * 1000  # To mm
-    df["total_precipitation_mm"] = df["total_precipitation"] * 1000  # To mm
+    df["snowfall_mm"] = df["snowfall"] * 1000
+    df["total_precipitation_mm"] = df["total_precipitation"] * 1000
     df[["snowfall_mm", "total_precipitation_mm"]] = df[
         ["snowfall_mm", "total_precipitation_mm"]
     ].mask(
@@ -302,7 +299,8 @@ def process_additional_dfs(
     holidays_df = (
         data["holidays"]
         .drop(columns=["name"])
-        .assign(date=lambda x: pd.to_datetime(x["date"]).dt.date, value=True)
+        # .assign(date=lambda x: pd.to_datetime(x["date"]).dt.date, value=True)
+        .assign(date=lambda x: pd.to_datetime(x["date"]).dt.normalize(), value=True)
         .pivot_table(
             index="date",
             columns="holiday_type",
@@ -334,10 +332,10 @@ def avg_weather_data(df: DataFrame, mapper: DataFrame) -> DataFrame:
     """
     Compute mean aggregated weather data per county and overall.
 
-    This function creates a deep copy of the input DataFrame, merges it
-    with the county mapping, and computes the mean of all numerical
-    weather features grouped by time-related columns and county, as
-    well as the overall mean across all counties.
+    This function creates a DataFrame based on weather data and county
+    mapping, and computes the mean of all numerical weather features
+    grouped by time-related columns and county, as well as the overall
+    mean across all counties.
 
     Parameters
     ----------

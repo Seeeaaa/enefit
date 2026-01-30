@@ -39,9 +39,9 @@ def load_raw_data(
         "weather_station_to_county_mapping": pd.read_csv(
             f"{main_path}weather_station_to_county_mapping.csv"
         ),
-        # "county_id_to_name_map": pd.read_json(
-        #     f"{main_path}county_id_to_name_map.json", typ="series"
-        # ),
+        "county_id_to_name_map": pd.read_json(
+            f"{main_path}county_id_to_name_map.json", typ="series"
+        ),
     }
     if additional_path:
         data["holidays"] = pd.read_csv(f"{additional_path}holidays.csv")
