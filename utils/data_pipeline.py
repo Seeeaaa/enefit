@@ -44,33 +44,37 @@ class DataPipeline:
 
     def _prepare_train(self) -> None:
         df = self._raw["train"].copy()
-        # Drop spring NaNs and impute autumn NaNs with interpolated values
-        na_datetimes = df[df.isna().any(axis=1)]["datetime"].unique()
-        df = df.loc[~df["datetime"].isin(na_datetimes[1::2])].assign(
-            target=lambda x: x["target"].interpolate()
-        )
-        df = df[
-            [
-                "county",
-                "product_type",
-                "is_business",
-                "is_consumption",
-                "datetime",
-                "target",
-                "data_block_id",
+        df = (
+            df[
+                [
+                    "county",
+                    "product_type",
+                    "is_business",
+                    "is_consumption",
+                    "datetime",
+                    "target",
+                    "data_block_id",
+                ]
             ]
-        ].astype(
-            {
-                "county": "category",
-                "product_type": "category",
-                "is_business": "bool",
-                "is_consumption": "bool",
-                "datetime": "datetime64[ns]",
-                "target": "float32",
-                "data_block_id": "uint16",
-            }
+            .dropna()
+            .astype(
+                {
+                    "county": "category",
+                    "product_type": "category",
+                    "is_business": "bool",
+                    "is_consumption": "bool",
+                    "datetime": "datetime64[ns]",
+                    "target": "float32",
+                    "data_block_id": "uint16",
+                }
+            )
+            .astype(
+                {
+                    "is_business": "category",
+                    "is_consumption": "category",
+                }
+            )
         )
-        # df["date"] = df["datetime"].dt.date
         df["date"] = df["datetime"].dt.normalize()
         self._prepared["train"] = df
 
@@ -93,24 +97,28 @@ class DataPipeline:
 
     def _prepare_client(self) -> None:
         df = self._raw["client"].copy()
-        df = df[
-            [
-                "county",
-                "product_type",
-                "is_business",
-                "eic_count",
-                "installed_capacity",
-                "data_block_id",
+        df = (
+            df[
+                [
+                    "county",
+                    "product_type",
+                    "is_business",
+                    "eic_count",
+                    "installed_capacity",
+                    "data_block_id",
+                ]
             ]
-        ].astype(
-            {
-                "county": "category",
-                "product_type": "category",
-                "is_business": "bool",
-                "eic_count": "float32",
-                "installed_capacity": "float32",
-                "data_block_id": "uint16",
-            }
+            .astype(
+                {
+                    "county": "category",
+                    "product_type": "category",
+                    "is_business": "bool",
+                    "eic_count": "float32",
+                    "installed_capacity": "float32",
+                    "data_block_id": "uint16",
+                }
+            )
+            .astype({"is_business": "category"})
         )
         self._prepared["client"] = df
 
@@ -123,8 +131,8 @@ class DataPipeline:
                 "data_block_id": "uint16",
             }
         )
-        df["electricity_datetime"] = df["origin_date"] + pd.Timedelta(2, "d")
-        df = df[["electricity_datetime", "euros_per_mwh", "data_block_id"]]
+        df["datetime"] = df["origin_date"] + pd.Timedelta(2, "d")
+        df = df[["datetime", "euros_per_mwh", "data_block_id"]]
         self._prepared["electricity_prices"] = df
 
     def _prepare_forecast_weather(self) -> None:
@@ -333,30 +341,37 @@ class DataPipeline:
                 right=self._prepared["client"],
                 how="left",
                 on=["county", "product_type", "is_business", "data_block_id"],
+                validate="m:1",
             )
             .merge(
                 right=self._prepared["gas_prices"],
                 how="left",
                 on=["data_block_id"],
+                validate="m:1",
             )
             .merge(
                 right=self._prepared["electricity_prices"],
                 how="left",
-                left_on=["datetime", "data_block_id"],
-                right_on=["electricity_datetime", "data_block_id"],
+                on=["datetime", "data_block_id"],
+                validate="m:1",
             )
-            .drop(columns=["electricity_datetime"])
             .merge(
                 avg_weather_data(
                     self._prepared["forecast_weather"],
                     self._prepared["weather_station_to_county_mapping"],
-                ).add_prefix(fp),
+                )
+                .drop_duplicates(
+                    ["county", "forecast_datetime", "data_block_id"],
+                    keep="last",
+                )
+                .add_prefix(fp),
                 how="left",
                 left_on=["county", "datetime", "data_block_id"],
                 right_on=[
                     fp + c
                     for c in ["county", "forecast_datetime", "data_block_id"]
                 ],
+                validate="m:1",
             )
             .drop(
                 columns=[
@@ -383,6 +398,7 @@ class DataPipeline:
                 how="left",
                 left_on=["county", "datetime"],
                 right_on=[hp + c for c in ["county", "fully_available_at"]],
+                validate="m:1",
             )
             .drop(
                 columns=[
@@ -401,7 +417,7 @@ class DataPipeline:
                 on="date",
             )
             .fillna({column: False for column in holidays_names})
-            .astype({column: "bool" for column in holidays_names})
+            # .astype({column: "bool" for column in holidays_names})
         )
         self.df = self.df.drop(columns=["data_block_id", "date"])
 
@@ -410,17 +426,17 @@ class DataPipeline:
         self.df = add_dst_flag(self.df)
         self.df = add_cyclic_datetime_features(self.df, drop_raw=True)
         # self.test_df = add_lag(
-            # self.df,
-            # datetime_column="datetime",
-            # lag_in_days=2,
-            # id_columns=[
-            #     "county",
-            #     "product_type",
-            #     "is_business",
-            #     "is_consumption",
-            #     "datetime",
-            # ],
-            # target_columns=["target"],
+        # self.df,
+        # datetime_column="datetime",
+        # lag_in_days=2,
+        # id_columns=[
+        #     "county",
+        #     "product_type",
+        #     "is_business",
+        #     "is_consumption",
+        #     "datetime",
+        # ],
+        # target_columns=["target"],
         # )
 
         # self.df = self.df.pipe(
