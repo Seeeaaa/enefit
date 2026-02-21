@@ -3,9 +3,12 @@ import pandas as pd
 from pandas import DataFrame, Series
 from utils.preprocessing import avg_weather_data
 from utils.feature_engineering import (
+    get_lag,
+    add_lags,
+    prepare_time_series_groupby,
+    compute_rolling_features,
     add_dst_flag,
     add_cyclic_datetime_features,
-    add_lag,
 )
 
 
@@ -17,7 +20,7 @@ class DataPipeline:
         self.parquet_path = parquet_path
         self._raw: dict[str, DataFrame] = {}
         self._prepared: dict[str, DataFrame] = {}
-        self.df: DataFrame | None = None
+        self.df: DataFrame = pd.DataFrame()
 
     def load(self) -> None:
         """
@@ -61,8 +64,10 @@ class DataPipeline:
                 {
                     "county": "category",
                     "product_type": "category",
-                    "is_business": "bool",
-                    "is_consumption": "bool",
+                    # "is_business": "bool",
+                    # "is_consumption": "bool",
+                    "is_business": "uint8",
+                    "is_consumption": "uint8",
                     "datetime": "datetime64[ns]",
                     "target": "float32",
                     "data_block_id": "uint16",
@@ -112,7 +117,8 @@ class DataPipeline:
                 {
                     "county": "category",
                     "product_type": "category",
-                    "is_business": "bool",
+                    # "is_business": "bool",
+                    "is_business": "uint8",
                     "eic_count": "float32",
                     "installed_capacity": "float32",
                     "data_block_id": "uint16",
@@ -307,7 +313,6 @@ class DataPipeline:
     def _prepare_holidays(self) -> None:
         df = self._raw["holidays"].copy()
         df = df.drop(columns=["name"])
-        # df["date"] = pd.to_datetime(df["date"].dt.date)
         df["date"] = pd.to_datetime(df["date"]).dt.normalize()
         df["value"] = True
         df = df.pivot_table(
@@ -320,7 +325,7 @@ class DataPipeline:
         df.columns.name = None
         self._prepared["holidays"] = df
 
-    def prepare(self) -> None:
+    def prepare(self, drop_raw=True) -> None:
         self._prepare_train()
         self._prepare_gas_prices()
         self._prepare_client()
@@ -329,9 +334,10 @@ class DataPipeline:
         self._prepare_historical_weather()
         self._prepare_weather_station_to_county_mapping()
         self._prepare_holidays()
-        # self._raw.clear()
+        if drop_raw:
+            self._raw.clear()
 
-    def merge(self) -> None:
+    def merge(self, drop_prepared=True) -> None:
         fp = "f1_"  # Prefix for columns related to the 1 day forecast
         hp = "h2_"  # Prefix for columns related to 2 day historical data
         holidays_names = self._prepared["holidays"].columns.drop(["date"])
@@ -418,34 +424,57 @@ class DataPipeline:
             )
             .fillna({column: False for column in holidays_names})
             # .astype({column: "bool" for column in holidays_names})
+            .astype({column: "uint8" for column in holidays_names})
+            .astype({column: "category" for column in holidays_names})
         )
+
+        if drop_prepared:
+            self._prepared.clear()
         self.df = self.df.drop(columns=["data_block_id", "date"])
 
-    def add_features(self) -> None:
+    def add_features(
+        self,
+        lag_specs: dict[str, dict[str, list[str]]],
+        group_cols: list,
+        datetime_col: str,
+        value_col: str,
+    ) -> None:
 
-        self.df = add_dst_flag(self.df)
+        self.df = (
+            add_dst_flag(self.df)
+            .astype({"dst": "uint8"})
+            .astype({"dst": "category"})
+        )
         self.df = add_cyclic_datetime_features(self.df, drop_raw=True)
-        # self.test_df = add_lag(
-        # self.df,
-        # datetime_column="datetime",
-        # lag_in_days=2,
-        # id_columns=[
-        #     "county",
-        #     "product_type",
-        #     "is_business",
-        #     "is_consumption",
-        #     "datetime",
-        # ],
-        # target_columns=["target"],
-        # )
-
-        # self.df = self.df.pipe(
-        #     add_lag(self.df),
-        #     id_columns=[
-        #         "county",
-        #         "product_type",
-        #         "is_business",
-        #         "is_consumption",
-        #         "datetime",
-        #     ],
-        # )
+        self.df = add_lags(
+            self.df,
+            value_col,
+            list(lag_specs.keys()),
+            datetime_col,
+            group_cols,
+        )
+        for lag, windows_params in lag_specs.items():
+            tsg = prepare_time_series_groupby(
+                self.df,
+                f"target_lag_{lag}",
+                datetime_col,
+                group_cols,
+            )
+            for window, funcs in windows_params.items():
+                self.df = self.df.merge(
+                    compute_rolling_features(
+                        tsg,
+                        f"target_lag_{lag}",
+                        window,
+                        funcs,
+                    ),
+                    "left",
+                    group_cols + [datetime_col],
+                    validate="1:1",
+                )
+        self.df["target_to_capacity"] = self.df["target_lag_2d"] / (
+            self.df["installed_capacity"]
+        )
+        self.df["capacity_to_eic"] = self.df["installed_capacity"] / (
+            self.df["eic_count"]
+        )
