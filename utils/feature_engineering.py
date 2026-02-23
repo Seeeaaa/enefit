@@ -1,111 +1,196 @@
 from pandas import DataFrame, Series, Timedelta, Timestamp, DateOffset
-from pandas.core.groupby.generic import DataFrameGroupBy
+from pandas.core.groupby.generic import SeriesGroupBy
 import pandas as pd
 import numpy as np
 
 
 def get_lag(
-    df: DataFrame,
-    dt: str = "datetime",
-    lag: int = 2,
-    columns: list[str] = ["target"],
-) -> DataFrame:
+    df: pd.DataFrame,
+    value_col: str,
+    lag: str,
+    datetime_col: str,
+) -> pd.DataFrame:
     """
-    Shift 'dt' column by 'lag' days and rename selected columns.
+    Shift the datetime column by a given time offset and rename the
+    value column.
 
     Parameters
     ----------
-    df : DataFrame
+    df : pd.DataFrame
         Input DataFrame.
-    dt : str
+    value_col : str
+        Name of the column to be lagged and renamed.
+    lag : str
+        Time offset compatible with pandas.Timedelta (e.g. '48h', '7d').
+    datetime_col : str
         Name of the datetime column to be shifted.
-    lag : int
-        Number of days to shift (must be 2 or greater).
-    columns : list[str]
-        List of columns to rename.
 
     Returns
     -------
-    DataFrame
-        DataFrame with the shifted datetime column and renamed columns.
-
-    Raises
-    ------
-    ValueError
-        If 'lag' is less than 2.
-    KeyError
-        If any column from 'columns' is not in the DataFrame.
+    pd.DataFrame
+        DataFrame with the shifted datetime column and the renamed
+        lagged column.
     """
-    if lag < 2:
-        raise ValueError(f"'lag' must be at least 2 days, got {lag}")
+    return df.assign(
+        **{datetime_col: df[datetime_col] + pd.Timedelta(lag)}
+    ).rename(columns={value_col: f"{value_col}_lag_{lag}"})
 
-    missing = [col for col in columns if col not in df.columns]
 
-    if missing:
-        raise KeyError(f"Columns not found in DataFrame: {missing}")
+def add_lags(
+    df: pd.DataFrame,
+    value_col: str,
+    lags: list[str],
+    datetime_col: str,
+    group_cols: list[str],
+) -> pd.DataFrame:
 
-    return df.assign(**{dt: df[dt] + Timedelta(days=lag)}).rename(
-        columns={col: f"{lag}d_lag_{col}" for col in columns}
+    id_cols = [datetime_col] + group_cols
+    original_df = df[id_cols + [value_col]]
+
+    for lag in lags:
+        df = df.merge(
+            get_lag(
+                original_df,
+                value_col,
+                lag,
+                datetime_col,
+            ),
+            how="left",
+            on=id_cols,
+            validate="1:1",
+        )
+    return df
+
+
+def prepare_time_series_groupby(
+    df: pd.DataFrame,
+    value_col: str,
+    datetime_col: str,
+    group_cols: list[str],
+) -> SeriesGroupBy:
+    """
+    Prepare a SeriesGroupBy with a DatetimeIndex, suitable for
+    time-based rolling operations.
+    """
+    return (
+        df.sort_values(group_cols + [datetime_col])
+        .set_index(datetime_col)
+        .groupby(
+            by=group_cols,
+            sort=False,
+            observed=True,
+        )[value_col]
     )
 
 
-def get_moving_average(
-    sorted_dfgb: DataFrameGroupBy,
-    columns: list[str],
-    window: int = 24,
-    min_periods: int | None = None,
-) -> DataFrame:
+def compute_rolling_features(
+    sgb: SeriesGroupBy,
+    value_col: str,
+    window: str,
+    funcs: list[str],
+) -> pd.DataFrame:
     """
-    Compute rolling mean for specified columns of a grouped DataFrame
-    and shift the datetime column by 48 hours.
-
-    Parameters
-    ----------
-    sorted_dfgb : DataFrameGroupBy
-        Grouped DataFrame (result of df.groupby(..., as_index=False)),
-        where the original DataFrame was sorted by the datetime64[ns]
-        index.
-    columns : list[str]
-        List of columns to aggregate.
-    window : int
-        Rolling window size in hours (min_periods=window).
-    min_periods : int | None
-        Minimum number of observations in the window required to have a
-        value otherwise None.
-
-    Returns
-    -------
-    DataFrame
-        DataFrame containing:
-        - all grouping columns,
-        - the datetime column, shifted by 48 hours,
-        - a new columns with the rolling mean.
+    Compute rolling aggregations over a time-based window and return a
+    flat DataFrame with named features.
     """
-    txt = "h_ma_2d_lag_"
-    missing = [c for c in columns if c not in sorted_dfgb.obj.columns]
-    if missing:
-        raise KeyError(f"Columns not found in DataFrame: {missing}")
-
-    # Store original dtypes
-    original_dtypes = {
-        f"{window}{txt}{c}": sorted_dfgb.obj[c].dtype for c in columns
-    }
-    df_rolled = (
-        sorted_dfgb[columns]
-        .rolling(
-            Timedelta(f"{window} h"),
-            min_periods=min_periods,
+    return (
+        sgb.rolling(
+            window,
             closed="left",
         )
-        .mean()
+        .agg(funcs)
+        .astype("float32")
+        .rename(
+            columns={
+                func: f"{value_col}_{window}_win_{func}" for func in funcs
+            }
+        )
         .reset_index()
     )
-    df_rolled.iloc[:, 0] += Timedelta(hours=48)  # Shift datetime
-    df_rolled = df_rolled.rename(
-        columns={c: f"{window}{txt}{c}" for c in columns}
-    )
-    df_rolled = df_rolled.astype(original_dtypes)
-    return df_rolled
+
+
+# def add_lag(
+#     df: DataFrame,
+#     datetime_column: str = "datetime",
+#     lag_in_days: int = 2,
+#     id_columns: list[str] = [
+#         "county",
+#         "product_type",
+#         "is_business",
+#         "is_consumption",
+#         "datetime",
+#     ],
+#     target_columns: list[str] = ["target"],
+# ) -> DataFrame:
+#     df = df.copy(deep=True)
+#     shifted_df = df[id_columns + target_columns].copy(deep=True)
+#     shifted_df[datetime_column] = shifted_df[datetime_column] + Timedelta(
+#         days=lag_in_days
+#     )
+#     shifted_df = shifted_df.rename(
+#         columns={c: f"{lag_in_days}d_lag_{c}" for c in target_columns}
+#     )
+#     df = df.merge(shifted_df, how="left", on=id_columns, validate="1:1")
+#     return df
+
+
+# def get_moving_average(
+#     sorted_dfgb: DataFrameGroupBy,
+#     columns: list[str],
+#     window: int = 24,
+#     min_periods: int | None = None,
+# ) -> DataFrame:
+#     """
+#     Compute rolling mean for specified columns of a grouped DataFrame
+#     and shift the datetime column by 48 hours.
+
+#     Parameters
+#     ----------
+#     sorted_dfgb : DataFrameGroupBy
+#         Grouped DataFrame (result of df.groupby(..., as_index=False)),
+#         where the original DataFrame was sorted by the datetime64[ns]
+#         index.
+#     columns : list[str]
+#         List of columns to aggregate.
+#     window : int
+#         Rolling window size in hours (min_periods=window).
+#     min_periods : int | None
+#         Minimum number of observations in the window required to have a
+#         value otherwise None.
+
+#     Returns
+#     -------
+#     DataFrame
+#         DataFrame containing:
+#         - all grouping columns,
+#         - the datetime column, shifted by 48 hours,
+#         - a new columns with the rolling mean.
+#     """
+#     txt = "h_ma_2d_lag_"
+#     missing = [c for c in columns if c not in sorted_dfgb.obj.columns]
+#     if missing:
+#         raise KeyError(f"Columns not found in DataFrame: {missing}")
+
+#     # Store original dtypes
+#     original_dtypes = {
+#         f"{window}{txt}{c}": sorted_dfgb.obj[c].dtype for c in columns
+#     }
+#     df_rolled = (
+#         sorted_dfgb[columns]
+#         .rolling(
+#             Timedelta(f"{window} h"),
+#             min_periods=min_periods,
+#             closed="left",
+#         )
+#         .mean()
+#         .reset_index()
+#     )
+#     df_rolled.iloc[:, 0] += Timedelta(hours=48)  # Shift datetime
+#     df_rolled = df_rolled.rename(
+#         columns={c: f"{window}{txt}{c}" for c in columns}
+#     )
+#     df_rolled = df_rolled.astype(original_dtypes)
+#     return df_rolled
 
 
 def add_dst_flag(df: DataFrame, datetime_col: str = "datetime") -> DataFrame:
