@@ -3,10 +3,12 @@
 *.zip
 *.ipynb_checkpoints
 *.lock
-*.png
+# *.png
 *.pbix
 *.json
 *.parquet
+
+map.png
 
 data
 reports
