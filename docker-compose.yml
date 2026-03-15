@@ -4,10 +4,15 @@ services:
     ports:
       - "8888:8888"
     volumes:
-      - .:/app/pet_project
+      # - .:/app/pet_project
+      - .:/app/enefit
       - ../jl_settings:/root/.jupyter
       - ../jl_ipython:/root/.ipython
-    working_dir: /app/pet_project
+    # working_dir: /app/pet_project
+    working_dir: /app/enefit
+
+    environment:
+      DATABASE_URL: postgresql://enefit:enefit_pass@db:5432/enefit_db
       
     entrypoint: >
       poetry run jupyter lab
@@ -17,8 +22,13 @@ services:
       --port=8888
       --IdentityProvider.token=""
       --ServerApp.disable_check_xsrf=True
+
     stdin_open: true
     tty: true
+
+    depends_on:
+      - db
+
     deploy:
       resources:
         reservations:
@@ -26,3 +36,26 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+  
+  db:
+    image: postgres:17
+    # restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: enefit
+      POSTGRES_PASSWORD: enefit_pass
+      POSTGRES_DB: enefit_db
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U enefit -d enefit_db"]
+      interval: 5s
+      retries: 5
+
+volumes:
+  pgdata:
