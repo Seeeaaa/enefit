@@ -19,3 +19,19 @@ CREATE TABLE IF NOT EXISTS client (
     date DATE,
     data_block_id INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS gas_prices (
+    forecast_date DATE,
+    lowest_price_per_mwh REAL,
+    highest_price_per_mwh REAL,
+    origin_date DATE,
+    data_block_id INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS electricity_prices (
+    forecast_date DATE,
+    euros_per_mwh REAL,
+    origin_date TIMESTAMP,
+    data_block_id INTEGER
+);
+
