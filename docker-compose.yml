@@ -26,9 +26,6 @@ services:
     stdin_open: true
     tty: true
 
-    depends_on:
-      - db
-
     deploy:
       resources:
         reservations:
@@ -39,7 +36,12 @@ services:
   
   db:
     image: postgres:17
-    # restart: unless-stopped
+    profiles: ["db"]
+    command: >
+      postgres
+      -c shared_buffers=64MB
+      -c work_mem=4MB
+      -c maintenance_work_mem=32MB
 
     environment:
       POSTGRES_USER: enefit
