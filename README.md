@@ -16,7 +16,7 @@ The number of prosumers is rapidly increasing, creating challenges for grid stab
 <!-- **`0. Competition Overview.ipynb`** - all information about competition from the host.   -->
 **[`1. Exploratory Data Analysis.ipynb`](notebooks/1.%20Exploratory%20Data%20Analysis.ipynb)** - missing values, data types, time series consistency, data merging, feature engineering, and visualizations.
 <!-- **`1. Exploratory Data Analysis.ipynb`** - data analysis: missing values, time series consistency, data merging, feature engineering, and visualizations.   -->
-**[`1.1. SQL EDA.ipynb`](notebooks/4.%20SQL%20EDA.ipynb)** - SQL-based exploratory analysis: data stored in a PostgreSQL service running via Docker Compose, multi-table JOINs, CTEs, window functions (moving averages, MoM change), aggregations by segment, installed capacity CAGR (53% annually, reflecting rapid growth of prosumer solar panels installations in Estonia).
+**[`1.1. SQL EDA.ipynb`](notebooks/1.1.%20SQL%20EDA.ipynb)** - SQL-based exploratory analysis: data stored in a PostgreSQL service running via Docker Compose, multi-table JOINs, CTEs, window functions (moving averages, MoM change), aggregations by segment, installed capacity CAGR (53% annually, reflecting rapid growth of prosumer solar panels installations in Estonia).
 
 **[`2. Baseline Comparison.ipynb`](notebooks/2.%20Baseline%20Comparison.ipynb)** - comparison of XGBoost, LightGBM, and CatBoost baseline models.
 <!-- **`2. Baseline Comparison.ipynb`** - comparison of baseline models.   -->
