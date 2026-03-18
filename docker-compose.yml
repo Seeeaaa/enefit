@@ -4,11 +4,9 @@ services:
     ports:
       - "8888:8888"
     volumes:
-      # - .:/app/pet_project
       - .:/app/enefit
       - ../jl_settings:/root/.jupyter
       - ../jl_ipython:/root/.ipython
-    # working_dir: /app/pet_project
     working_dir: /app/enefit
 
     environment:
