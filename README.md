@@ -63,3 +63,6 @@ PostgreSQL container connection defined in `docker-compose.yml`. Interaction fro
 ├── requirements.txt
 └── README.md
 ```
+
+## Stack
+Python, SQL, PostgreSQL, Docker Compose, Pandas, NumPy, SciPy, Matplotlib, Seaborn, Plotly, Power BI, Power Query, DAX, Scikit-learn, XGBoost, LightGBM, CatBoost, Optuna.
