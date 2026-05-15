@@ -223,7 +223,7 @@ def add_cyclic_datetime_features(
         Name of the datetime column to process.
     drop_raw : bool
         If True, drop the intermediate integer datetime columns (e.g.
-        hour, weekday) after encoding.
+        hour, day_of_week) after encoding.
 
     Returns
     -------
@@ -241,7 +241,7 @@ def add_cyclic_datetime_features(
     dt = pd.to_datetime(df[datetime_col])
 
     df["hour"] = dt.dt.hour
-    df["weekday"] = dt.dt.weekday
+    df["day_of_week"] = dt.dt.dayofweek
     df["day_of_month"] = dt.dt.day
     df["month"] = dt.dt.month
     df["day_of_year"] = dt.dt.dayofyear
@@ -251,7 +251,7 @@ def add_cyclic_datetime_features(
     # Cyclic format
     for col, period in [
         ("hour", 24),
-        ("weekday", 7),
+        ("day_of_week", 7),
         ("day_of_month", 30.4),
         ("month", 12),
         ("day_of_year", 365),
@@ -269,7 +269,7 @@ def add_cyclic_datetime_features(
         df = df.drop(
             columns=[
                 "hour",
-                "weekday",
+                "day_of_week",
                 "day_of_month",
                 "month",
                 "day_of_year",

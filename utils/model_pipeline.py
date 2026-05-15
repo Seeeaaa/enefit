@@ -177,7 +177,10 @@ def load_or_train_sklearn(
         "model_params": model_params,
         "eval_sample_size": eval_sample_size,
         "random_state": random_state,
+        "target_col": target_col,
+        "cat_cols": sorted(cat_cols) if cat_cols else [],
         "drop_cols": sorted(drop_cols) if drop_cols else [],
+        "cols": sorted(df.columns.to_list()),
     }
 
     meta = load_cache_meta(meta_path, split, cache_params)
@@ -280,7 +283,9 @@ def load_or_train_core(
         "model_params": model_params,
         "eval_sample_size": eval_sample_size,
         "random_state": random_state,
+        "target_col": target_col,
         "drop_cols": sorted(drop_cols) if drop_cols else [],
+        "cols": sorted(df.columns.to_list()),
         "num_boost_round": num_boost_round,
         "early_stopping_rounds": early_stopping_rounds,
     }
