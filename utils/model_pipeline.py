@@ -4,6 +4,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xgboost as xgb
+# from xgboost import XGBRegressor, Booster as XGBBooster
+from lightgbm import LGBMRegressor
+# , Booster as LGBMBooster
+from catboost import CatBoostRegressor
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -30,7 +34,7 @@ def format_date(ts) -> str:
 
 
 def get_model_and_meta_paths(
-    models_dir: str, notebook: str, split: dict, purpose: str, model_name: str
+    models_dir: str, notebook: str, split: dict, purpose: str, model_label: str
 ) -> tuple[Path, Path, Path]:
     """
     Constructs clean directory paths and returns (model_path, meta_path,
@@ -40,60 +44,60 @@ def get_model_and_meta_paths(
         f"{format_date(split['train'][0])}_{format_date(split['train'][1])}"
     )
     model_dir = (
-        Path(models_dir) / notebook / purpose / train_bounds / model_name
+        Path(models_dir) / notebook / purpose / train_bounds / model_label
     )
     model_dir.mkdir(parents=True, exist_ok=True)
 
-    paths = {
-        "xgb": model_dir / "model.ubj",
-        "xgb_booster": model_dir / "model.ubj",
-        "lgbm": model_dir / "model.pkl",
-        "cb": model_dir / "model.cbm",
-    }
-    if model_name not in paths:
-        raise ValueError(f"Unknown model_name: {model_name}")
+    if "xgb" in model_label:
+        model_file = "model.ubj"
+    elif "lgbm" in model_label:
+        model_file = "model.pkl"
+    elif "cb" in model_label:
+        model_file = "model.cbm"
+    else:
+        raise ValueError(f"Unknown model_label: {model_label}")
 
     return (
-        paths[model_name],
+        model_dir / model_file,
         model_dir / "meta.json",
         model_dir / "history.json",
     )
 
 
-def save_model_unified(model_name: str, model, model_path: Path):
+def save_model_unified(model, model_path: Path):
     """
     Persists model weights to disk using framework-specific serializers:
     - XGBoost / CatBoost: native .save_model() for binary compatibility
     - LightGBM: Joblib (pickle) to preserve the Scikit-Learn wrapper
     state.
     """
-    if model_name in ["xgb", "xgb_booster", "cb"]:
+    class_name = model.__class__.__name__
+    if class_name in ["XGBRegressor", "Booster", "CatBoostRegressor"]:
         model.save_model(str(model_path))
-    elif model_name == "lgbm":
+    elif class_name in ["LGBMRegressor", "LGBMBooster"]:
         joblib.dump(model, model_path)
     else:
-        raise ValueError(f"Unknown model_name: {model_name}")
+        raise ValueError(f"Unknown model class: {class_name}")
 
 
-def load_model_unified(
-    model_name: str, model_cls, model_params: dict, model_path: Path
-):
+def load_model_unified(model_cls, model_params: dict, model_path: Path):
     """Unified load behavior for different model types."""
-    if model_name == "xgb":
+    class_name = model_cls.__name__
+    if class_name == "XGBRegressor":
         model = model_cls(**model_params)
         model.load_model(str(model_path))
         return model
-    elif model_name == "xgb_booster":
+    if class_name == "Booster":  # raw XGB booster
         booster = model_cls()
         booster.load_model(str(model_path))
         return booster
-    elif model_name == "lgbm":
+    if class_name == "LGBMRegressor":
         return joblib.load(model_path)
-    elif model_name == "cb":
+    if class_name == "CatBoostRegressor":
         model = model_cls(**model_params)
         model.load_model(str(model_path))
         return model
-    raise ValueError(f"Unknown model_name: {model_name}")
+    raise ValueError(f"Unknown model_cls class name: {class_name}")
 
 
 def load_cache_meta(
@@ -150,7 +154,7 @@ def load_or_train_sklearn(
     models_dir: str,
     notebook: str,
     purpose: str,
-    model_name: str,
+    model_label: str,
     model_cls,
     model_params: dict,
     split: dict,
@@ -160,6 +164,7 @@ def load_or_train_sklearn(
     cat_cols: list | None = None,
     eval_sample_size: int = 100_000,
     random_state: int = 10,
+    # sample_weight_col: str | None = None,
 ) -> tuple[object, bool, dict | None]:
     """
     Pipeline for Scikit-Learn API wrappers. 
@@ -170,7 +175,7 @@ def load_or_train_sklearn(
     removing 'eval_set' rows from the training pool.
     """
     model_path, meta_path, history_path = get_model_and_meta_paths(
-        models_dir, notebook, split, purpose, model_name
+        models_dir, notebook, split, purpose, model_label
     )
 
     cache_params = {
@@ -181,14 +186,13 @@ def load_or_train_sklearn(
         "cat_cols": sorted(cat_cols) if cat_cols else [],
         "drop_cols": sorted(drop_cols) if drop_cols else [],
         "cols": sorted(df.columns.to_list()),
+        # "sample_weight_col": sample_weight_col,
     }
 
     meta = load_cache_meta(meta_path, split, cache_params)
     if model_path.exists() and meta is not None:
         try:
-            model = load_model_unified(
-                model_name, model_cls, model_params, model_path
-            )
+            model = load_model_unified(model_cls, model_params, model_path)
             history = None
             if history_path.exists():
                 with history_path.open("r", encoding="utf-8") as f:
@@ -199,14 +203,25 @@ def load_or_train_sklearn(
 
     if df is None:
         raise ValueError(
-            f"Cache miss for {model_name}, but df was not provided."
+            f"Cache miss for {model_label}, but df was not provided."
         )
 
     mask = (df["datetime"] >= split["train"][0]) & (
         df["datetime"] <= split["train"][1]
     )
-    train_df = df.loc[mask, ~df.columns.isin(drop_cols)]
-    X_train = train_df.drop(columns=[target_col])
+
+    train_df = df.loc[mask]
+
+    # sample_weight = None
+    # if sample_weight_col is not None:
+    #     sample_weight = train_df[sample_weight_col]
+    
+    drop_cols = drop_cols + [target_col]
+
+    # if sample_weight_col is not None:
+    #     drop_cols.append(sample_weight_col)
+
+    X_train = train_df.drop(columns=drop_cols)
     y_train = train_df[target_col]
 
     # optional eval_set logic; strictly None if size is 0
@@ -222,6 +237,9 @@ def load_or_train_sklearn(
         X_train = X_train.drop(index=eval_idx)
         y_train = y_train.drop(index=eval_idx)
 
+        # if sample_weight is not None:
+        #     sample_weight = sample_weight.drop(index=eval_idx)
+
     model = model_cls(**model_params)
     history = None
 
@@ -229,23 +247,26 @@ def load_or_train_sklearn(
     fit_kwargs = {}
     if eval_set is not None:
         fit_kwargs["eval_set"] = eval_set
+    # if sample_weight is not None:
+    #     fit_kwargs["sample_weight"] = sample_weight
 
-    if model_name == "xgb":
-        model.fit(X_train, y_train, verbose=0, **fit_kwargs)
+    model_class = model.__class__.__name__
+    if model_class == "XGBRegressor":
+        model.fit(X_train, y_train, **fit_kwargs, verbose=0)
         if eval_set is not None:
             history = model.evals_result()
-    elif model_name == "lgbm":
+    elif model_class == "LGBMRegressor":
         model.fit(X_train, y_train, categorical_feature=cat_cols, **fit_kwargs)
         if eval_set is not None:
             history = getattr(model, "evals_result_", None)
-    elif model_name == "cb":
+    elif model_class == "CatBoostRegressor":
         model.fit(X_train, y_train, cat_features=cat_cols, **fit_kwargs)
         if eval_set is not None:
             history = getattr(model, "evals_result_", None)
     else:
-        raise ValueError(f"Unknown model_name: {model_name}")
+        raise ValueError(f"Unknown model class: {model_class}")
 
-    save_model_unified(model_name, model, model_path)
+    save_model_unified(model, model_path)
     with history_path.open("w", encoding="utf-8") as f:
         json.dump(history, f, ensure_ascii=False, indent=2, cls=NumpyEncoder)
     save_cache_meta(meta_path, split, cache_params)
