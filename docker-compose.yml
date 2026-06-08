@@ -1,3 +1,4 @@
+name: enefit
 services:
   jlpe:
     image: vyxan/jlpe_image:3.13
@@ -5,7 +6,8 @@ services:
       - "8888:8888"
     volumes:
       - .:/app/enefit
-      - ../jl_settings:/root/.jupyter
+      - ../jl_settings/jupyter_server_config.py:/root/.jupyter/jupyter_server_config.py
+      - ../jl_settings/lab/user-settings:/root/.jupyter/lab/user-settings
       - ../jl_ipython:/root/.ipython
     working_dir: /app/enefit
 
