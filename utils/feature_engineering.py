@@ -109,90 +109,6 @@ def compute_rolling_features(
     )
 
 
-# def add_lag(
-#     df: DataFrame,
-#     datetime_column: str = "datetime",
-#     lag_in_days: int = 2,
-#     id_columns: list[str] = [
-#         "county",
-#         "product_type",
-#         "is_business",
-#         "is_consumption",
-#         "datetime",
-#     ],
-#     target_columns: list[str] = ["target"],
-# ) -> DataFrame:
-#     df = df.copy(deep=True)
-#     shifted_df = df[id_columns + target_columns].copy(deep=True)
-#     shifted_df[datetime_column] = shifted_df[datetime_column] + Timedelta(
-#         days=lag_in_days
-#     )
-#     shifted_df = shifted_df.rename(
-#         columns={c: f"{lag_in_days}d_lag_{c}" for c in target_columns}
-#     )
-#     df = df.merge(shifted_df, how="left", on=id_columns, validate="1:1")
-#     return df
-
-
-# def get_moving_average(
-#     sorted_dfgb: DataFrameGroupBy,
-#     columns: list[str],
-#     window: int = 24,
-#     min_periods: int | None = None,
-# ) -> DataFrame:
-#     """
-#     Compute rolling mean for specified columns of a grouped DataFrame
-#     and shift the datetime column by 48 hours.
-
-#     Parameters
-#     ----------
-#     sorted_dfgb : DataFrameGroupBy
-#         Grouped DataFrame (result of df.groupby(..., as_index=False)),
-#         where the original DataFrame was sorted by the datetime64[ns]
-#         index.
-#     columns : list[str]
-#         List of columns to aggregate.
-#     window : int
-#         Rolling window size in hours (min_periods=window).
-#     min_periods : int | None
-#         Minimum number of observations in the window required to have a
-#         value otherwise None.
-
-#     Returns
-#     -------
-#     DataFrame
-#         DataFrame containing:
-#         - all grouping columns,
-#         - the datetime column, shifted by 48 hours,
-#         - a new columns with the rolling mean.
-#     """
-#     txt = "h_ma_2d_lag_"
-#     missing = [c for c in columns if c not in sorted_dfgb.obj.columns]
-#     if missing:
-#         raise KeyError(f"Columns not found in DataFrame: {missing}")
-
-#     # Store original dtypes
-#     original_dtypes = {
-#         f"{window}{txt}{c}": sorted_dfgb.obj[c].dtype for c in columns
-#     }
-#     df_rolled = (
-#         sorted_dfgb[columns]
-#         .rolling(
-#             Timedelta(f"{window} h"),
-#             min_periods=min_periods,
-#             closed="left",
-#         )
-#         .mean()
-#         .reset_index()
-#     )
-#     df_rolled.iloc[:, 0] += Timedelta(hours=48)  # Shift datetime
-#     df_rolled = df_rolled.rename(
-#         columns={c: f"{window}{txt}{c}" for c in columns}
-#     )
-#     df_rolled = df_rolled.astype(original_dtypes)
-#     return df_rolled
-
-
 def add_dst_flag(df: DataFrame, datetime_col: str = "datetime") -> DataFrame:
     """
     Add a boolean 'dst' column indicating timestamps that fall within
@@ -209,74 +125,100 @@ def add_dst_flag(df: DataFrame, datetime_col: str = "datetime") -> DataFrame:
     return df
 
 
-def add_cyclic_datetime_features(
-    df: DataFrame, datetime_col: str = "datetime", drop_raw: bool = True
+# def add_cyclic_datetime_features(
+#     df: DataFrame, datetime_col: str = "datetime", drop_raw: bool = True
+# ) -> DataFrame:
+#     """
+#     Extract and encode cyclical datetime features.
+
+#     Parameters
+#     ----------
+#     df : DataFrame
+#         Input DataFrame that contain datetime column.
+#     datetime_col : str
+#         Name of the datetime column to process.
+#     drop_raw : bool
+#         If True, drop the intermediate integer datetime columns (e.g.
+#         hour, day_of_week) after encoding.
+
+#     Returns
+#     -------
+#     DataFrame
+#         Same DataFrame with sin-cos features.
+
+#     Raises
+#     ------
+#     KeyError
+#         If 'datetime_col' is not in DataFrame.
+#     """
+#     if datetime_col not in df:
+#         raise KeyError(f"Column {datetime_col} not in DataFrame")
+#     df = df.copy()
+#     dt = pd.to_datetime(df[datetime_col])
+
+#     df["hour"] = dt.dt.hour
+#     df["day_of_week"] = dt.dt.dayofweek
+#     df["day_of_month"] = dt.dt.day
+#     df["month"] = dt.dt.month
+#     df["day_of_year"] = dt.dt.dayofyear
+#     df["week_of_year"] = dt.dt.isocalendar().week.astype(int)
+#     df["quarter"] = dt.dt.quarter
+
+#     # Cyclic format
+#     for col, period in [
+#         ("hour", 24),
+#         ("day_of_week", 7),
+#         ("day_of_month", 30.4),
+#         ("month", 12),
+#         ("day_of_year", 365),
+#         ("week_of_year", 52),
+#         ("quarter", 4),
+#     ]:
+#         df[f"{col}_sin"] = np.sin(2 * np.pi * df[col] / period).astype(
+#             "float32"
+#         )
+#         df[f"{col}_cos"] = np.cos(2 * np.pi * df[col] / period).astype(
+#             "float32"
+#         )
+
+#     if drop_raw:
+#         df = df.drop(
+#             columns=[
+#                 "hour",
+#                 "day_of_week",
+#                 "day_of_month",
+#                 "month",
+#                 "day_of_year",
+#                 "week_of_year",
+#                 "quarter",
+#             ]
+#         )
+
+#     return df
+
+
+def add_categorical_datetime_features(
+    df: DataFrame, datetime_col: str = "datetime"
 ) -> DataFrame:
     """
-    Extract and encode cyclical datetime features.
-
-    Parameters
-    ----------
-    df : DataFrame
-        Input DataFrame that contain datetime column.
-    datetime_col : str
-        Name of the datetime column to process.
-    drop_raw : bool
-        If True, drop the intermediate integer datetime columns (e.g.
-        hour, day_of_week) after encoding.
-
-    Returns
-    -------
-    DataFrame
-        Same DataFrame with sin-cos features.
-
-    Raises
-    ------
-    KeyError
-        If 'datetime_col' is not in DataFrame.
+    Extract datetime features, encoding cyclical/low-cardinality
+    components as pandas 'category' type and others as integers.
     """
     if datetime_col not in df:
         raise KeyError(f"Column {datetime_col} not in DataFrame")
     df = df.copy()
-    dt = pd.to_datetime(df[datetime_col])
+    dt_col = pd.to_datetime(df[datetime_col])
 
-    df["hour"] = dt.dt.hour
-    df["day_of_week"] = dt.dt.dayofweek
-    df["day_of_month"] = dt.dt.day
-    df["month"] = dt.dt.month
-    df["day_of_year"] = dt.dt.dayofyear
-    df["week_of_year"] = dt.dt.isocalendar().week.astype(int)
-    df["quarter"] = dt.dt.quarter
+    # Categorical features (low cardinality)
+    df["hour"] = dt_col.dt.hour.astype("category")
+    df["day_of_week"] = dt_col.dt.dayofweek.astype("category")
+    df["month"] = dt_col.dt.month.astype("category")
+    df["quarter"] = dt_col.dt.quarter.astype("category")
 
-    # Cyclic format
-    for col, period in [
-        ("hour", 24),
-        ("day_of_week", 7),
-        ("day_of_month", 30.4),
-        ("month", 12),
-        ("day_of_year", 365),
-        ("week_of_year", 52),
-        ("quarter", 4),
-    ]:
-        df[f"{col}_sin"] = np.sin(2 * np.pi * df[col] / period).astype(
-            "float32"
-        )
-        df[f"{col}_cos"] = np.cos(2 * np.pi * df[col] / period).astype(
-            "float32"
-        )
-
-    if drop_raw:
-        df = df.drop(
-            columns=[
-                "hour",
-                "day_of_week",
-                "day_of_month",
-                "month",
-                "day_of_year",
-                "week_of_year",
-                "quarter",
-            ]
-        )
+    # Numeric/Integer features (high cardinality - kept as numeric to prevent overfitting)
+    df["day_of_month"] = dt_col.dt.day.astype("int32")
+    df["day_of_year"] = dt_col.dt.dayofyear.astype("int32")
+    df["week_of_year"] = dt_col.dt.isocalendar().week.astype("int32")
 
     return df
 
