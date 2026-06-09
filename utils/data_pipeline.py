@@ -8,7 +8,8 @@ from utils.feature_engineering import (
     prepare_time_series_groupby,
     compute_rolling_features,
     add_dst_flag,
-    add_cyclic_datetime_features,
+    # add_cyclic_datetime_features,
+    add_categorical_datetime_features,
 )
 
 
@@ -62,10 +63,8 @@ class DataPipeline:
             .dropna()
             .astype(
                 {
-                    "county": "category",
-                    "product_type": "category",
-                    # "is_business": "bool",
-                    # "is_consumption": "bool",
+                    "county": "uint8",
+                    "product_type": "uint8",
                     "is_business": "uint8",
                     "is_consumption": "uint8",
                     "datetime": "datetime64[ns]",
@@ -75,6 +74,8 @@ class DataPipeline:
             )
             .astype(
                 {
+                    "county": "category",
+                    "product_type": "category",
                     "is_business": "category",
                     "is_consumption": "category",
                 }
@@ -115,16 +116,21 @@ class DataPipeline:
             ]
             .astype(
                 {
-                    "county": "category",
-                    "product_type": "category",
-                    # "is_business": "bool",
+                    "county": "uint8",
+                    "product_type": "uint8",
                     "is_business": "uint8",
                     "eic_count": "float32",
                     "installed_capacity": "float32",
                     "data_block_id": "uint16",
                 }
             )
-            .astype({"is_business": "category"})
+            .astype(
+                {
+                    "county": "category",
+                    "product_type": "category",
+                    "is_business": "category",
+                }
+            )
         )
         self._prepared["client"] = df
 
@@ -137,20 +143,21 @@ class DataPipeline:
                 "data_block_id": "uint16",
             }
         )
-        df["datetime"] = df["origin_date"] + pd.Timedelta(2, "d")
+        df["datetime"] = df["origin_date"] + pd.Timedelta("2 D")
         df = df[["datetime", "euros_per_mwh", "data_block_id"]]
         self._prepared["electricity_prices"] = df
 
     def _prepare_forecast_weather(self) -> None:
         df = self._raw["forecast_weather"].copy()
         precipitation_threshold = 0.1  # Threshold in mm
+
         df[["latitude", "longitude"]] = (
             df[["latitude", "longitude"]].round(1).mul(10)
         )
         df["hours_ahead"] = pd.to_timedelta(df["hours_ahead"], "h")
+
         df["snowfall_mm"] = df["snowfall"].mul(1000)
         df["total_precipitation_mm"] = df["total_precipitation"].mul(1000)
-
         cols = ["snowfall_mm", "total_precipitation_mm"]
         df[cols] = df[cols].where(df[cols].abs() >= precipitation_threshold, 0)
         df = df.rename(
@@ -338,8 +345,23 @@ class DataPipeline:
             self._raw.clear()
 
     def merge(self, drop_prepared=True) -> None:
-        fp = "f1_"  # Prefix for columns related to the 1 day forecast
-        hp = "h2_"  # Prefix for columns related to 2 day historical data
+        f1d_p = "f1d_"  # Prefix for columns related to the 1 day forecast
+        f0d_p = "f0d_"  # Prefix for columns related to today's forecast
+        h2d_p = "h2d_"  # Prefix for columns related to 2 day historical data
+        h1d_p = "h1d_"  # Prefix for columns related to 1 day historical data
+
+        aggregated_fw = avg_weather_data(
+            self._prepared["forecast_weather"],
+            self._prepared["weather_station_to_county_mapping"],
+        ).drop_duplicates(
+            ["county", "forecast_datetime", "data_block_id"],
+            keep="last",
+        )  # Drop duplicates caused by DST switches
+        aggregated_hw = avg_weather_data(
+            self._prepared["historical_weather"],
+            self._prepared["weather_station_to_county_mapping"],
+        )
+
         holidays_names = self._prepared["holidays"].columns.drop(["date"])
         self.df = (
             pd.merge(
@@ -361,27 +383,23 @@ class DataPipeline:
                 on=["datetime", "data_block_id"],
                 validate="m:1",
             )
+            # Forecast for today
             .merge(
-                avg_weather_data(
-                    self._prepared["forecast_weather"],
-                    self._prepared["weather_station_to_county_mapping"],
-                )
-                .drop_duplicates(
-                    ["county", "forecast_datetime", "data_block_id"],
-                    keep="last",
-                )
-                .add_prefix(fp),
+                aggregated_fw.assign(
+                    forecast_datetime=lambda x: x["forecast_datetime"]
+                    + pd.Timedelta("1 D"),
+                ).add_prefix(f0d_p),
                 how="left",
                 left_on=["county", "datetime", "data_block_id"],
                 right_on=[
-                    fp + c
+                    f0d_p + c
                     for c in ["county", "forecast_datetime", "data_block_id"]
                 ],
                 validate="m:1",
             )
             .drop(
                 columns=[
-                    fp + c
+                    f0d_p + c
                     for c in [
                         "county",
                         "origin_datetime",
@@ -391,32 +409,92 @@ class DataPipeline:
                     ]
                 ]
             )
+            #
+            # Forecast 1 day ahead
             .merge(
-                avg_weather_data(
-                    self._prepared["historical_weather"],
-                    self._prepared["weather_station_to_county_mapping"],
-                )
-                .assign(
-                    fully_available_at=lambda x: x["datetime"]
-                    + pd.Timedelta("2 d")
-                )
-                .add_prefix(hp),
+                aggregated_fw.add_prefix(f1d_p),
                 how="left",
-                left_on=["county", "datetime"],
-                right_on=[hp + c for c in ["county", "fully_available_at"]],
+                left_on=["county", "datetime", "data_block_id"],
+                right_on=[
+                    f1d_p + c
+                    for c in ["county", "forecast_datetime", "data_block_id"]
+                ],
                 validate="m:1",
             )
             .drop(
                 columns=[
-                    hp + c
+                    f1d_p + c
                     for c in [
                         "county",
-                        "datetime",
-                        "fully_available_at",
+                        "origin_datetime",
+                        "hours_ahead",
+                        "forecast_datetime",
                         "data_block_id",
                     ]
                 ]
             )
+            #
+            # Historical 2 days ago
+            .merge(
+                aggregated_hw.assign(
+                    datetime=lambda x: x["datetime"] + pd.Timedelta("2 D"),
+                    data_block_id=lambda x: np.where(
+                        x["datetime"].dt.hour <= 10,
+                        x["data_block_id"] + 1,  # Morning: shift up by 1
+                        x["data_block_id"],  # Afternoon: already aligns
+                    ).astype("uint16"),
+                ).add_prefix(h2d_p),
+                how="left",
+                left_on=["county", "datetime", "data_block_id"],
+                right_on=[
+                    h2d_p + c
+                    for c in [
+                        "county",
+                        "datetime",
+                        "data_block_id",
+                    ]
+                ],
+                validate="m:1",
+            )
+            .drop(
+                columns=[
+                    h2d_p + c
+                    for c in [
+                        "county",
+                        "datetime",
+                        "data_block_id",
+                    ]
+                ]
+            )
+            #
+            # Historical 1 day ago
+            .merge(
+                aggregated_hw.assign(
+                    datetime=lambda x: x["datetime"] + pd.Timedelta("1 D")
+                ).add_prefix(h1d_p),
+                how="left",
+                left_on=["county", "datetime", "data_block_id"],
+                right_on=[
+                    h1d_p + c
+                    for c in [
+                        "county",
+                        "datetime",
+                        "data_block_id",
+                    ]
+                ],
+                validate="m:1",
+            )
+            .drop(
+                columns=[
+                    h1d_p + c
+                    for c in [
+                        "county",
+                        "datetime",
+                        "data_block_id",
+                    ]
+                ]
+            )
+            #
             .merge(
                 right=self._prepared["holidays"],
                 how="left",
@@ -430,7 +508,12 @@ class DataPipeline:
 
         if drop_prepared:
             self._prepared.clear()
-        self.df = self.df.drop(columns=["data_block_id", "date"])
+        self.df = self.df.drop(
+            columns=[
+                "data_block_id",
+                "date",
+            ]
+        )
 
     def add_features(
         self,
@@ -438,6 +521,7 @@ class DataPipeline:
         group_cols: list,
         datetime_col: str,
         value_col: str,
+        # time_format: str = "categorical",
     ) -> None:
 
         self.df = (
@@ -445,7 +529,12 @@ class DataPipeline:
             .astype({"dst": "uint8"})
             .astype({"dst": "category"})
         )
-        self.df = add_cyclic_datetime_features(self.df, drop_raw=True)
+        # if time_format == "cyclic":
+        #     self.df = add_cyclic_datetime_features(self.df, drop_raw=True)
+        # elif time_format == "categorical":
+        self.df = add_categorical_datetime_features(self.df)
+        # else:
+        #     raise ValueError(f"Unknown time_format: {time_format}")
         self.df = add_lags(
             self.df,
             value_col,
