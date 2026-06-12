@@ -521,20 +521,13 @@ class DataPipeline:
         group_cols: list,
         datetime_col: str,
         value_col: str,
-        # time_format: str = "categorical",
     ) -> None:
-
         self.df = (
             add_dst_flag(self.df)
             .astype({"dst": "uint8"})
             .astype({"dst": "category"})
         )
-        # if time_format == "cyclic":
-        #     self.df = add_cyclic_datetime_features(self.df, drop_raw=True)
-        # elif time_format == "categorical":
         self.df = add_categorical_datetime_features(self.df)
-        # else:
-        #     raise ValueError(f"Unknown time_format: {time_format}")
         self.df = add_lags(
             self.df,
             value_col,
