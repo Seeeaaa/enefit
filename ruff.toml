@@ -1,0 +1,22 @@
+# Global ruff config: ~/.config/ruff/ruff.toml (Linux/macOS)
+#                     %APPDATA%\ruff\ruff.toml  (Windows)
+
+# Extend defaults to also process Jupyter notebooks
+extend-include = ["*.ipynb"]
+
+# PEP 8 standard line length
+line-length = 79
+
+target-version = "py313"
+
+[lint]
+select = ["E", "F", "I", "UP"]
+fixable = ["ALL"]
+per-file-ignores = { "*.ipynb" = ["F401"] }
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = false
