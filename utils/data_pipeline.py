@@ -4,7 +4,7 @@ from pandas import DataFrame, Series
 from utils.preprocessing import avg_weather_data
 from utils.feature_engineering import (
     get_lag,
-    add_lags,
+    add_lags_to_df,
     prepare_time_series_groupby,
     compute_rolling_features,
     add_dst_flag,
@@ -501,7 +501,6 @@ class DataPipeline:
                 on="date",
             )
             .fillna({column: False for column in holidays_names})
-            # .astype({column: "bool" for column in holidays_names})
             .astype({column: "uint8" for column in holidays_names})
             .astype({column: "category" for column in holidays_names})
         )
@@ -515,45 +514,51 @@ class DataPipeline:
             ]
         )
 
-    def add_features(
-        self,
-        lag_specs: dict[str, dict[str, list[str]]],
-        group_cols: list,
-        datetime_col: str,
-        value_col: str,
-    ) -> None:
+    def transform_datetime(self) -> None:
         self.df = (
             add_dst_flag(self.df)
             .astype({"dst": "uint8"})
             .astype({"dst": "category"})
         )
         self.df = add_categorical_datetime_features(self.df)
-        self.df = add_lags(
+
+    def add_lags_and_rollings(
+        self,
+        value_col: str,
+        lag_specs: dict[str, dict[str, list[str]] | None],
+        datetime_col: str,
+        group_cols: list,
+    ) -> None:
+        self.df = add_lags_to_df(
             self.df,
             value_col,
             list(lag_specs.keys()),
             datetime_col,
             group_cols,
         )
+
         for lag, windows_params in lag_specs.items():
-            tsg = prepare_time_series_groupby(
-                self.df,
-                f"target_lag_{lag}",
-                datetime_col,
-                group_cols,
-            )
-            for window, funcs in windows_params.items():
-                self.df = self.df.merge(
-                    compute_rolling_features(
-                        tsg,
-                        f"target_lag_{lag}",
-                        window,
-                        funcs,
-                    ),
-                    "left",
-                    group_cols + [datetime_col],
-                    validate="1:1",
+            if windows_params:
+                tsg = prepare_time_series_groupby(
+                    self.df,
+                    f"target_lag_{lag}",
+                    datetime_col,
+                    group_cols,
                 )
+                for window, funcs in windows_params.items():
+                    self.df = self.df.merge(
+                        compute_rolling_features(
+                            tsg,
+                            f"target_lag_{lag}",
+                            window,
+                            funcs,
+                        ),
+                        "left",
+                        group_cols + [datetime_col],
+                        validate="1:1",
+                    )
+
+    def add_ratio_features(self) -> None:
         self.df["target_to_capacity"] = self.df["target_lag_2d"] / (
             self.df["installed_capacity"]
         )
