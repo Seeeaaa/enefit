@@ -4,9 +4,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-# from xgboost import XGBRegressor, Booster as XGBBooster
+import lightgbm as lgb
+
 from lightgbm import LGBMRegressor
-# , Booster as LGBMBooster
+from lightgbm import early_stopping, log_evaluation
 from catboost import CatBoostRegressor
 
 
@@ -150,6 +151,21 @@ def save_cache_meta(meta_path: Path, split: dict, cache_params: dict):
         json.dump(meta, f, ensure_ascii=False, indent=2, cls=NumpyEncoder)
 
 
+# def _stable_callback_repr(cb) -> str:
+#     """
+#     Produces a stable string key for LightGBM callbacks that doesn't
+#     include memory addresses.
+#     """
+#     name = type(cb).__name__
+#     # Extract serializable attributes, skip callables and private fields
+#     attrs = {
+#         k: v
+#         for k, v in vars(cb).items()
+#         if not k.startswith("_") and not callable(v)
+#     }
+#     return f"{name}({attrs})"
+
+
 def load_or_train_sklearn(
     models_dir: str,
     notebook: str,
@@ -162,13 +178,14 @@ def load_or_train_sklearn(
     target_col: str = "target",
     drop_cols: list = ["datetime"],
     cat_cols: list | None = None,
-    eval_sample_size: int = 100_000,
+    eval_week: bool = False,
+    early_stopping_rounds: int | None = None,
     random_state: int = 10,
-    # sample_weight_col: str | None = None,
+    # callbacks: list | None = None,
 ) -> tuple[object, bool, dict | None]:
     """
-    Pipeline for Scikit-Learn API wrappers. 
-    
+    Pipeline for Scikit-Learn API wrappers.
+
     Implements 'lazy loading': if a valid cache is found, data
     preparation (splitting/sampling) is skipped entirely. Handles
     temporal splitting internally and ensures strict validation by
@@ -180,13 +197,21 @@ def load_or_train_sklearn(
 
     cache_params = {
         "model_params": model_params,
-        "eval_sample_size": eval_sample_size,
+        # "early_stopping_rounds": next(
+        #     (
+        #         c.stopping_rounds
+        #         for c in (callbacks or [])
+        #         if hasattr(c, "stopping_rounds")
+        #     ),
+        #     None,
+        # ),
+        "early_stopping_rounds": early_stopping_rounds,
+        "eval_week": eval_week,
         "random_state": random_state,
         "target_col": target_col,
         "cat_cols": sorted(cat_cols) if cat_cols else [],
         "drop_cols": sorted(drop_cols) if drop_cols else [],
         "cols": sorted(df.columns.to_list()),
-        # "sample_weight_col": sample_weight_col,
     }
 
     meta = load_cache_meta(meta_path, split, cache_params)
@@ -212,54 +237,86 @@ def load_or_train_sklearn(
 
     train_df = df.loc[mask]
 
-    # sample_weight = None
-    # if sample_weight_col is not None:
-    #     sample_weight = train_df[sample_weight_col]
-    
     drop_cols = drop_cols + [target_col]
-
-    # if sample_weight_col is not None:
-    #     drop_cols.append(sample_weight_col)
-
-    X_train = train_df.drop(columns=drop_cols)
-    y_train = train_df[target_col]
 
     # optional eval_set logic; strictly None if size is 0
     eval_set = None
-    if eval_sample_size > 0:
-        n_samples = min(eval_sample_size, len(X_train))
-        eval_idx = X_train.sample(n_samples, random_state=random_state).index
-        
+
+    if eval_week:
+        eval_mask = train_df["datetime"].between(
+            train_df["datetime"].max().normalize() - pd.Timedelta("1W"),
+            train_df["datetime"].max(),
+        )
+
         # prepare evaluation set
-        eval_set = [(X_train.loc[eval_idx], y_train.loc[eval_idx])]
-        
+        X_eval = train_df.loc[eval_mask].drop(columns=drop_cols)
+        y_eval = train_df.loc[eval_mask][target_col]
+        eval_set = [(X_eval, y_eval)]
+
         # remove eval rows from training data to prevent leakage
-        X_train = X_train.drop(index=eval_idx)
-        y_train = y_train.drop(index=eval_idx)
+        X_train = train_df.loc[~eval_mask].drop(columns=drop_cols)
+        y_train = train_df.loc[~eval_mask][target_col]
+    else:
+        X_train = train_df.drop(columns=drop_cols)
+        y_train = train_df[target_col]
 
-        # if sample_weight is not None:
-        #     sample_weight = sample_weight.drop(index=eval_idx)
+    es_active = (early_stopping_rounds is not None) and (eval_set is not None)
+    model_class = model_cls.__name__
+    if model_class == "XGBRegressor" and es_active:
+        model = model_cls(
+            **model_params, early_stopping_rounds=early_stopping_rounds
+        )
+    else:
+        model = model_cls(**model_params)
 
-    model = model_cls(**model_params)
+    # model = model_cls(**model_params)
     history = None
 
     # use kwargs to avoid passing eval_set=None
     fit_kwargs = {}
     if eval_set is not None:
         fit_kwargs["eval_set"] = eval_set
-    # if sample_weight is not None:
-    #     fit_kwargs["sample_weight"] = sample_weight
 
-    model_class = model.__class__.__name__
+    # model_class = model.__class__.__name__
+    # es_active = (early_stopping_rounds is not None) and (eval_set is not None)
+
     if model_class == "XGBRegressor":
-        model.fit(X_train, y_train, **fit_kwargs, verbose=0)
+        # if es_active:
+        #     model = model_cls(
+        #         **model_params, early_stopping_rounds=early_stopping_rounds
+        #     )
+        # else:
+        #     model = model_cls(**model_params)
+
+        model.fit(
+            X_train,
+            y_train,
+            **fit_kwargs,
+            verbose=0,
+            # early_stopping_rounds=early_stopping_rounds if es_active else None,
+        )
         if eval_set is not None:
             history = model.evals_result()
+
     elif model_class == "LGBMRegressor":
-        model.fit(X_train, y_train, categorical_feature=cat_cols, **fit_kwargs)
+        lgbm_callbacks = []
+        if es_active:
+            lgbm_callbacks.append(
+                lgb.early_stopping(early_stopping_rounds, verbose=False)
+            )
+        model.fit(
+            X_train,
+            y_train,
+            categorical_feature=cat_cols,
+            callbacks=lgbm_callbacks or None,
+            **fit_kwargs,
+        )
         if eval_set is not None:
             history = getattr(model, "evals_result_", None)
+
     elif model_class == "CatBoostRegressor":
+        if es_active:
+            fit_kwargs["early_stopping_rounds"] = early_stopping_rounds
         model.fit(X_train, y_train, cat_features=cat_cols, **fit_kwargs)
         if eval_set is not None:
             history = getattr(model, "evals_result_", None)
@@ -283,7 +340,8 @@ def load_or_train_core(
     df: pd.DataFrame,
     target_col: str = "target",
     drop_cols: list = ["datetime"],
-    eval_sample_size: int = 100_000,
+    # eval_sample_size: int = 100_000,
+    eval_week: bool = False,
     random_state: int = 10,
     num_boost_round: int = 1000,
     early_stopping_rounds: int = 50,
@@ -302,7 +360,8 @@ def load_or_train_core(
     # training parameters in cache check
     cache_params = {
         "model_params": model_params,
-        "eval_sample_size": eval_sample_size,
+        # "eval_sample_size": eval_sample_size,
+        "eval_week": eval_week,
         "random_state": random_state,
         "target_col": target_col,
         "drop_cols": sorted(drop_cols) if drop_cols else [],
@@ -342,12 +401,12 @@ def load_or_train_core(
     if eval_sample_size > 0:
         n_samples = min(eval_sample_size, len(X_train))
         eval_idx = X_train.sample(n_samples, random_state=random_state).index
-        
+
         # separate DMatrices to ensure eval is excluded from train
         dtrain = xgb.DMatrix(
-            X_train.drop(index=eval_idx), 
-            label=y_train.drop(index=eval_idx), 
-            enable_categorical=True
+            X_train.drop(index=eval_idx),
+            label=y_train.drop(index=eval_idx),
+            enable_categorical=True,
         )
         deval = xgb.DMatrix(
             X_train.loc[eval_idx],
@@ -371,7 +430,7 @@ def load_or_train_core(
         evals_result=history,
     )
 
-    save_model_unified(internal_model_name, booster, model_path)
+    save_model_unified(booster, model_path)
     with history_path.open("w", encoding="utf-8") as f:
         json.dump(history, f, ensure_ascii=False, indent=2, cls=NumpyEncoder)
     save_cache_meta(meta_path, split, cache_params)
