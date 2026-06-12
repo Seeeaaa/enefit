@@ -36,7 +36,7 @@ def get_lag(
     ).rename(columns={value_col: f"{value_col}_lag_{lag}"})
 
 
-def add_lags(
+def add_lags_to_df(
     df: pd.DataFrame,
     value_col: str,
     lags: list[str],
