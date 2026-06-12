@@ -14,5 +14,5 @@ data
 reports
 models
 catboost_info
-scripts
+# scripts
 __pycache__
