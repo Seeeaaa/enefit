@@ -151,21 +151,6 @@ def save_cache_meta(meta_path: Path, split: dict, cache_params: dict):
         json.dump(meta, f, ensure_ascii=False, indent=2, cls=NumpyEncoder)
 
 
-# def _stable_callback_repr(cb) -> str:
-#     """
-#     Produces a stable string key for LightGBM callbacks that doesn't
-#     include memory addresses.
-#     """
-#     name = type(cb).__name__
-#     # Extract serializable attributes, skip callables and private fields
-#     attrs = {
-#         k: v
-#         for k, v in vars(cb).items()
-#         if not k.startswith("_") and not callable(v)
-#     }
-#     return f"{name}({attrs})"
-
-
 def load_or_train_sklearn(
     models_dir: str,
     notebook: str,
@@ -181,7 +166,6 @@ def load_or_train_sklearn(
     eval_week: bool = False,
     early_stopping_rounds: int | None = None,
     random_state: int = 10,
-    # callbacks: list | None = None,
 ) -> tuple[object, bool, dict | None]:
     """
     Pipeline for Scikit-Learn API wrappers.
@@ -197,14 +181,6 @@ def load_or_train_sklearn(
 
     cache_params = {
         "model_params": model_params,
-        # "early_stopping_rounds": next(
-        #     (
-        #         c.stopping_rounds
-        #         for c in (callbacks or [])
-        #         if hasattr(c, "stopping_rounds")
-        #     ),
-        #     None,
-        # ),
         "early_stopping_rounds": early_stopping_rounds,
         "eval_week": eval_week,
         "random_state": random_state,
@@ -277,23 +253,12 @@ def load_or_train_sklearn(
     if eval_set is not None:
         fit_kwargs["eval_set"] = eval_set
 
-    # model_class = model.__class__.__name__
-    # es_active = (early_stopping_rounds is not None) and (eval_set is not None)
-
     if model_class == "XGBRegressor":
-        # if es_active:
-        #     model = model_cls(
-        #         **model_params, early_stopping_rounds=early_stopping_rounds
-        #     )
-        # else:
-        #     model = model_cls(**model_params)
-
         model.fit(
             X_train,
             y_train,
             **fit_kwargs,
             verbose=0,
-            # early_stopping_rounds=early_stopping_rounds if es_active else None,
         )
         if eval_set is not None:
             history = model.evals_result()
