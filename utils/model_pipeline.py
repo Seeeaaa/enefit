@@ -163,7 +163,7 @@ def load_or_train_sklearn(
     target_col: str = "target",
     drop_cols: list = ["datetime"],
     cat_cols: list | None = None,
-    eval_week: bool = False,
+    eval_period: bool = False,
     early_stopping_rounds: int | None = None,
     random_state: int = 10,
 ) -> tuple[object, bool, dict | None]:
@@ -182,7 +182,7 @@ def load_or_train_sklearn(
     cache_params = {
         "model_params": model_params,
         "early_stopping_rounds": early_stopping_rounds,
-        "eval_week": eval_week,
+        "eval_period": eval_period,
         "random_state": random_state,
         "target_col": target_col,
         "cat_cols": sorted(cat_cols) if cat_cols else [],
@@ -218,9 +218,9 @@ def load_or_train_sklearn(
     # optional eval_set logic; strictly None if size is 0
     eval_set = None
 
-    if eval_week:
+    if eval_period:
         eval_mask = train_df["datetime"].between(
-            train_df["datetime"].max().normalize() - pd.Timedelta("1W"),
+            train_df["datetime"].max().normalize() - pd.Timedelta("3W"),
             train_df["datetime"].max(),
         )
 
@@ -305,8 +305,7 @@ def load_or_train_core(
     df: pd.DataFrame,
     target_col: str = "target",
     drop_cols: list = ["datetime"],
-    # eval_sample_size: int = 100_000,
-    eval_week: bool = False,
+    eval_period: bool = False,
     random_state: int = 10,
     num_boost_round: int = 1000,
     early_stopping_rounds: int = 50,
@@ -325,8 +324,7 @@ def load_or_train_core(
     # training parameters in cache check
     cache_params = {
         "model_params": model_params,
-        # "eval_sample_size": eval_sample_size,
-        "eval_week": eval_week,
+        "eval_period": eval_period,
         "random_state": random_state,
         "target_col": target_col,
         "drop_cols": sorted(drop_cols) if drop_cols else [],
