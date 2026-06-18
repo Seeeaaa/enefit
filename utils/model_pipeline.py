@@ -35,7 +35,11 @@ def format_date(ts) -> str:
 
 
 def get_model_and_meta_paths(
-    models_dir: str, notebook: str, split: dict, purpose: str, model_label: str
+    models_dir: str,
+    notebook: str,
+    split: dict,
+    purpose: str,
+    model_label: str,
 ) -> tuple[Path, Path, Path]:
     """
     Constructs clean directory paths and returns (model_path, meta_path,
@@ -245,7 +249,6 @@ def load_or_train_sklearn(
     else:
         model = model_cls(**model_params)
 
-    # model = model_cls(**model_params)
     history = None
 
     # use kwargs to avoid passing eval_set=None
@@ -261,7 +264,7 @@ def load_or_train_sklearn(
             verbose=0,
         )
         if eval_set is not None:
-            history = model.evals_result()
+            history = model.evals_result()["validation_0"]
 
     elif model_class == "LGBMRegressor":
         lgbm_callbacks = []
@@ -277,14 +280,16 @@ def load_or_train_sklearn(
             **fit_kwargs,
         )
         if eval_set is not None:
-            history = getattr(model, "evals_result_", None)
+            history = getattr(model, "evals_result_", None)["valid_0"]
 
     elif model_class == "CatBoostRegressor":
         if es_active:
             fit_kwargs["early_stopping_rounds"] = early_stopping_rounds
         model.fit(X_train, y_train, cat_features=cat_cols, **fit_kwargs)
         if eval_set is not None:
-            history = getattr(model, "evals_result_", None)
+            history = getattr(model, "evals_result_", None)[
+                "validation"
+            ]  # CatBoost also stores train results
     else:
         raise ValueError(f"Unknown model class: {model_class}")
 
