@@ -6,9 +6,9 @@ services:
       - "8888:8888"
     volumes:
       - .:/app/enefit
-      - ../jl_settings/jupyter_server_config.py:/root/.jupyter/jupyter_server_config.py
-      - ../jl_settings/lab/user-settings:/root/.jupyter/lab/user-settings
-      - ../jl_ipython:/root/.ipython
+      - ../jl_settings/jupyter/jupyter_server_config.py:/root/.jupyter/jupyter_server_config.py
+      - ../jl_settings/jupyter/lab/user-settings:/root/.jupyter/lab/user-settings
+      - ../jl_settings/ipython:/root/.ipython
     working_dir: /app/enefit
 
     environment:
