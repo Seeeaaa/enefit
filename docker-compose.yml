@@ -1,8 +1,7 @@
 name: enefit
 services:
   jlpe:
-    # image: vyxan/jlpe_image:3.13
-    image: vyxan/jlpe_image:uv
+    image: vyxan/jlpe_image:latest
     ports:
       - "8888:8888"
     volumes:
@@ -15,7 +14,6 @@ services:
     environment:
       DATABASE_URL: postgresql://enefit:enefit_pass@db:5432/enefit_db
 
-    # poetry run jupyter lab
     entrypoint: >
       jupyter lab
       --allow-root
